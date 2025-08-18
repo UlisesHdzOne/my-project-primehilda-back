@@ -1,0 +1,48 @@
+version: "3.9"
+
+networks:
+  backend-network:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db_prod
+    networks:
+      - backend-network
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: nest_backend_prod
+    networks:
+      - backend-network
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+
+volumes:
+  postgres-data-prod:
