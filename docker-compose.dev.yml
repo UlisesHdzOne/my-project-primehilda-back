@@ -38,9 +38,9 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - .:/usr/src/app
+      - .:/usr/src/app:cached
       - /usr/src/app/node_modules
-    command: npm run start:dev
+    command: /bin/sh -c "npx prisma generate && npm run start:dev"
     restart: unless-stopped
 
 volumes:

@@ -124,9 +124,10 @@ export default registerAs('app', (): AppConfig => {
 
   const dbResult = validateDatabaseUrl(process.env.DATABASE_URL, nodeEnv);
   const portResult = validatePort(process.env.PORT);
+    const passwordResult = validatePassword(process.env.POSTGRES_PASSWORD, nodeEnv);
 
-  const allErrors = [...envResult.errors, ...dbResult.errors, ...portResult.errors];
-  const allWarnings = [...envResult.warnings, ...dbResult.warnings, ...portResult.warnings];
+  const allErrors = [...envResult.errors, ...dbResult.errors, ...portResult.errors, ...passwordResult.errors,];
+  const allWarnings = [...envResult.warnings, ...dbResult.warnings, ...portResult.warnings, ...passwordResult.warnings,];
 
   configLogger.warn(allWarnings, nodeEnv);
 
@@ -144,3 +145,31 @@ export default registerAs('app', (): AppConfig => {
     isProduction: nodeEnv === 'production',
   };
 });
+
+
+export function validatePassword(
+  password?: string,
+  nodeEnv: AppNodeEnv = 'development'
+): ValidationResult<string> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const value = password?.trim() || '';
+
+  if (!value) {
+    errors.push('DB_PASSWORD es requerida');
+    return { value: '', errors, warnings, source: 'DB_PASSWORD' };
+  }
+
+  if (nodeEnv === 'production') {
+    if (value.length < 12) {
+      errors.push('Password demasiado débil (mínimo 12 caracteres en producción)');
+    }
+    if (!/[A-Z]/.test(value)) warnings.push('Recomendado incluir mayúsculas en la password');
+    if (!/[0-9]/.test(value)) warnings.push('Recomendado incluir números en la password');
+    if (!/[^A-Za-z0-9]/.test(value)) warnings.push('Recomendado incluir caracteres especiales en la password');
+  } else {
+    if (value.length < 6) warnings.push('Password muy corta (mínimo recomendado 6 caracteres en desarrollo/test)');
+  }
+
+  return { value, errors, warnings, source: 'DB_PASSWORD' };
+}

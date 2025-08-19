@@ -1,14 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class DatabaseService extends PrismaClient {
-  async checkConnection(): Promise<boolean> {
+export class DatabaseService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  async checkConnection(): Promise<{ status: string; error?: string }> {
     try {
       await this.$queryRaw`SELECT 1`;
-      return true;
-    } catch (error) {
-      return false;
+      return { status: 'ok' };
+    } catch (error: any) {
+      return { status: 'error', error: error.message };
     }
   }
 

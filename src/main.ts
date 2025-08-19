@@ -3,31 +3,30 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import { securitySetup } from './config/security.config';
-import { AppConfig } from './config/configuration';
-import { Request, Response, NextFunction } from 'express'; // <-- IMPORT TIPOS
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get<ConfigService>(ConfigService);
-  
-  // Security configuration
+
+  // Security middlewares (Helmet, CORS, Rate limiting, etc.)
   securitySetup(app, configService);
 
-  // HTTPS redirection in production
   if (configService.get('NODE_ENV') === 'production') {
-    app.use((req: Request, res: Response, next: NextFunction) => { // <-- TIPOS
-      if (req.headers['x-forwarded-proto'] !== 'https') {
-        return res.redirect(`https://${req.headers.host}${req.url}`);
-      }
-      next();
-    });
+    // 🔒 Usa solo logs críticos
+    app.useLogger(['error', 'warn']);
+    // 🔒 Si Nest recibe tráfico detrás de un proxy (ej. Heroku, Nginx)
+    app.set('trust proxy', 1);
   }
+
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = configService.get<number>('PORT', 3000);
   await app.listen(port);
 
-  // Safe logging (hide credentials)
+  // Safe logging (ocultar credenciales sensibles)
   const dbUrl = configService.get<string>('DATABASE_URL');
   const safeDbUrl = dbUrl
     ? dbUrl.replace(/(:\/\/)(.*)(@)/, '$1****:****$3')

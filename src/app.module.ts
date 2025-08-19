@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import appConfig from './config/configuration';
 import { HealthController } from './health/health.controller';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -9,6 +10,7 @@ import { HealthController } from './health/health.controller';
       isGlobal: true,
       load: [appConfig],
     }),
+    DatabaseModule,
   ],
   controllers: [HealthController],
   providers: [],
