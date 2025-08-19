@@ -1,7 +1,24 @@
-# compiled output
-/dist
+# Node
 /node_modules
+
+# Build
+/dist
 /build
+
+# Prisma
+prisma/generated
+.generated
+
+# Env
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Docker
+docker-data
 
 # Logs
 logs
@@ -35,14 +52,7 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# temp directory
+# Temp
 .temp
 .tmp
 
@@ -54,3 +64,5 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+/generated/prisma
