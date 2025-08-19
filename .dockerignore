@@ -1,25 +1,24 @@
-# Node modules y builds
+# Node modules
 node_modules
+npm-debug.log
+yarn-error.log
+
+# Build outputs
 dist
+build
 
-# Logs
-*.log
-
-# Archivos de entorno
+# Environment files
 .env
-.env.*.local
+.env.production
+.env.development
 
-# Sistema operativo
+# Prisma generated files
+generated
+
+# Git
+.git
+.gitignore
+
+# OS files
 .DS_Store
 Thumbs.db
-
-# IDE
-.vscode
-.idea
-
-# Prisma
-prisma/dev.db
-prisma/migrations
-
-# Docker
-docker-compose.override.yml

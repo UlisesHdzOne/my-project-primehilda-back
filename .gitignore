@@ -17,11 +17,11 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
+/generated/
 # OS files
 .DS_Store
 Thumbs.db
-
+echo "/generated/" >> .gitignore
 # TypeScript
 *.tsbuildinfo
 
