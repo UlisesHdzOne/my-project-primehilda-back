@@ -1,40 +1,25 @@
-# Node
+# Node modules y builds
 node_modules
 dist
-build
 
 # Logs
-logs
 *.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# OS
-.DS_Store
-
-# IDEs
-/.idea
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# dotenv
+# Archivos de entorno
 .env
 .env.*.local
 
-# Temp
-.temp
-.tmp
+# Sistema operativo
+.DS_Store
+Thumbs.db
 
-# Runtime
-pids
-*.pid
-*.seed
-*.pid.lock
+# IDE
+.vscode
+.idea
 
-# Prisma generated
-/generated/prisma
+# Prisma
+prisma/dev.db
+prisma/migrations
+
+# Docker
+docker-compose.override.yml
