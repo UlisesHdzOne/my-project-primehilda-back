@@ -1,4 +1,3 @@
-
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { Injectable } from '@nestjs/common';
@@ -15,5 +14,17 @@ export class UserService {
 
   async getUsers() {
     return this.prisma.user.findMany();
+  }
+
+  async getUserById(id: number) {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  updateUser(id: number, dto: Partial<CreateUserDto>) {
+    return this.prisma.user.update({ where: { id }, data: dto });
+  }
+
+  deleteUser(id: number) {
+    return this.prisma.user.delete({ where: { id } });
   }
 }
