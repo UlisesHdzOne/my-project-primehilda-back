@@ -4,4 +4,6 @@ export class CreateAddressDto {
   colony: string;
   reference: string;
   zipcode: string;
+  latitude: number;
+  longitude: number;
 }

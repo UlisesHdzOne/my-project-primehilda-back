@@ -1,15 +1,27 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { Injectable } from '@nestjs/common';
+import { validateUser } from '../utils/user.validator';
+import { hash } from 'bcrypt';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createUser(dto: CreateUserDto) {
-    return this.prisma.user.create({
-      data: dto,
+    await validateUser(dto, this.prisma);
+    const hashedPassword = await hash(dto.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        ...dto,
+        password: hashedPassword,
+      },
     });
+
+    // Retornar solo datos seguros
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 
   async getUsers() {

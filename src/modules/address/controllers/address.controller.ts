@@ -17,29 +17,29 @@ export class AddressController {
   // POST /addres/create
   @Post('create')
   async create(@Body() dto: CreateAddressDto) {
-    return this.addresService.createAddres(dto);
+    return this.addresService.createAddress(dto);
   }
   //GET /addres
   @Get()
   async findAll() {
-    return this.addresService.getAddres();
+    return this.addresService.getAddress();
   }
 
   @Get(':id')
   async findOne(@Param('id') id: number) {
-    return this.addresService.getAddresById(Number(id));
+    return this.addresService.getAddressById(Number(id));
   }
 
   @Patch(':id')
   async update(
     @Param('id') id: number,
-    @Body() dto: Partial<CreateAddressDto>,
+    @Body() dto:CreateAddressDto,
   ) {
-    return this.addresService.updateAddres(Number(id), dto);
+    return this.addresService.updateAddress(Number(id), dto);
   }
 
   @Delete(':id')
   async delete(@Param('id') id: number) {
-    return this.addresService.deleteUser(Number(id));
+    return this.addresService.deleteAddress(Number(id));
   }
 }

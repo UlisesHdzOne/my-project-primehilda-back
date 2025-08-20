@@ -1,30 +1,53 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAddressDto } from '../dto/create-address.dto';
+import { GeocodingService } from './geocoding.service';
+import { CacheService } from './cache.service';
+import { validateCoordinates } from '../utils/address.validator';
 
 @Injectable()
 export class AddressService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly PRECISION = 6; // normaliza lat/lng
 
-  async createAddres(dto: CreateAddressDto) {
-    return this.prisma.address.create({
-      data: dto,
-    });
+  constructor(
+    private readonly prisma: PrismaService,
+    private geo: GeocodingService,
+    private cache: CacheService,
+  ) {}
+
+  async createAddress(dto: CreateAddressDto) {
+    const coords = await validateCoordinates(
+      dto.latitude,
+      dto.longitude,
+      this.geo,
+      this.cache,
+    );
+    const normalizedDto = { ...dto, ...coords };
+    return this.prisma.address.create({ data: normalizedDto });
   }
 
-  async getAddres() {
+  async getAddress() {
     return this.prisma.address.findMany();
   }
 
-  async getAddresById(id: number) {
+  async getAddressById(id: number) {
     return this.prisma.address.findUnique({ where: { id } });
   }
 
-  async updateAddres(id: number, dto: Partial<CreateAddressDto>) {
+  async updateAddress(id: number, dto: CreateAddressDto) {
+    const coords = await validateCoordinates(
+      dto.latitude,
+      dto.longitude,
+      this.geo,
+      this.cache,
+    );
+    dto.latitude = coords.latitude;
+    dto.longitude = coords.longitude;
+
     return this.prisma.address.update({ where: { id }, data: dto });
   }
 
-  async deleteUser(id: number) {
+  async deleteAddress(id: number) {
     return this.prisma.address.delete({ where: { id } });
   }
 }
