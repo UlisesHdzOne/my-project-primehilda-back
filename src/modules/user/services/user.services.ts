@@ -20,11 +20,11 @@ export class UserService {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  updateUser(id: number, dto: Partial<CreateUserDto>) {
+  async updateUser(id: number, dto: Partial<CreateUserDto>) {
     return this.prisma.user.update({ where: { id }, data: dto });
   }
 
-  deleteUser(id: number) {
+  async deleteUser(id: number) {
     return this.prisma.user.delete({ where: { id } });
   }
 }
