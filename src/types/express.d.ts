@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { Role } from '@prisma/client';
 
 interface JwtPayload {
   id: number;
@@ -6,6 +7,16 @@ interface JwtPayload {
   role: Role;
 }
 
-interface AuthRequest extends Request {
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtPayload;
+    }
+  }
+}
+
+export interface AuthRequest extends Request {
   user: JwtPayload;
 }
+
+export type { JwtPayload };

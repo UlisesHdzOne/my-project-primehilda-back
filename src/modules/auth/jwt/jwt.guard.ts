@@ -1,18 +1,15 @@
+// src/modules/auth/jwt/jwt.guard.ts
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { JwtPayload } from 'src/types/express';
-
-export interface AuthRequest extends Request {
-  user: JwtPayload;
-}
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean | Promise<boolean> {
-    const req = context.switchToHttp().getRequest<AuthRequest>();
+    const req = context.switchToHttp().getRequest<Request>();
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
@@ -23,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
-      req.user = payload; // aquí se asigna correctamente
+      req.user = payload; // Esto funciona porque extendimos Request en types/express
       return true;
     } catch (err) {
       throw new UnauthorizedException('Invalid token');

@@ -13,7 +13,8 @@ import { AddressService } from '../services/address.service';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { JwtAuthGuard } from 'src/modules/auth/jwt/jwt.guard';
-import type { AuthRequest } from 'src/modules/auth/jwt/jwt.guard';
+import type { AuthRequest } from 'src/types/express';
+
 
 @Controller('addresses')
 @UseGuards(JwtAuthGuard)
