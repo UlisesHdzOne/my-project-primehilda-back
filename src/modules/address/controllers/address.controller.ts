@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { AddressService } from '../services/address.service';
 import { CreateAddressDto } from '../dto/create-address.dto';
+import { UpdateAddressDto } from '../dto/update-address.dto';
 
 @Controller('addres')
 export class AddressController {
@@ -33,7 +34,7 @@ export class AddressController {
   @Patch(':id')
   async update(
     @Param('id') id: number,
-    @Body() dto:CreateAddressDto,
+    @Body() dto:UpdateAddressDto,
   ) {
     return this.addresService.updateAddress(Number(id), dto);
   }
