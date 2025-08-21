@@ -3,7 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { GeocodingService } from './geocoding.service';
 import { CacheService } from './cache.service';
-import { validateCoordinates } from '../utils/address.validator';
+import { validateAddress } from '../utils/address.validator';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 
 @Injectable()
@@ -15,14 +15,9 @@ export class AddressService {
   ) {}
 
   async createAddress(dto: CreateAddressDto, userId: number) {
-    const coords = await validateCoordinates(
-      dto.latitude,
-      dto.longitude,
-      this.geo,
-      this.cache,
-    );
-    const normalizedDto = { ...dto, ...coords, userId };
-    return this.prisma.address.create({ data: normalizedDto });
+    await validateAddress(dto, userId, this.prisma, this.geo, this.cache);
+
+    return this.prisma.address.create({ data: { ...dto, userId } });
   }
 
   async getAddress(userId: number) {
@@ -42,25 +37,16 @@ export class AddressService {
   }
 
   async updateAddress(id: number, dto: UpdateAddressDto, userId: number) {
-    let coords = {};
-    if (dto.latitude != null && dto.longitude != null) {
-      coords = await validateCoordinates(
-        dto.latitude,
-        dto.longitude,
-        this.geo,
-        this.cache,
-      );
-    }
-
-    const dataToUpdate = { ...dto, ...coords };
+    await validateAddress(dto, userId, this.prisma, this.geo, this.cache, true);
 
     const updated = await this.prisma.address.updateMany({
       where: { id, userId },
-      data: dataToUpdate,
+      data: dto,
     });
-    if (updated.count === 0) {
+
+    if (updated.count === 0)
       throw new BadRequestException('No puedes actualizar esta direccion');
-    }
+
     return updated;
   }
 

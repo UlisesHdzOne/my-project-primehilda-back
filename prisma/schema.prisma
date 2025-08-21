@@ -27,7 +27,7 @@ model Address {
   street    String
   colony    String
   reference String
-  zipCode   String?
+  zipcode   String?
   latitude  Float
   longitude Float
   createdAt DateTime @default(now())
