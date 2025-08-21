@@ -5,9 +5,11 @@ import { AddressService } from './services/address.service';
 import { GeocodingService } from './services/geocoding.service';
 import { HttpModule } from '@nestjs/axios';
 import { CacheService } from './services/cache.service';
+import { JwtModule } from '../auth/jwt/jwt.module';
+
 
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule,JwtModule],
   controllers: [AddressController],
   providers: [AddressService, PrismaService, GeocodingService,CacheService],
   exports: [GeocodingService,CacheService],

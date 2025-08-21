@@ -14,26 +14,34 @@ export class AddressService {
     private cache: CacheService,
   ) {}
 
-  async createAddress(dto: CreateAddressDto) {
+  async createAddress(dto: CreateAddressDto, userId: number) {
     const coords = await validateCoordinates(
       dto.latitude,
       dto.longitude,
       this.geo,
       this.cache,
     );
-    const normalizedDto = { ...dto, ...coords };
+    const normalizedDto = { ...dto, ...coords, userId };
     return this.prisma.address.create({ data: normalizedDto });
   }
 
-  async getAddress() {
-    return this.prisma.address.findMany();
+  async getAddress(userId: number) {
+    return this.prisma.address.findMany({ where: { userId } });
   }
 
-  async getAddressById(id: number) {
-    return this.prisma.address.findUnique({ where: { id } });
+  async getAddressById(id: number, userId: number) {
+    const address = await this.prisma.address.findUnique({
+      where: { id },
+    });
+
+    if (!address || address.userId !== userId) {
+      throw new BadRequestException('No puedes acceder a esta dirección');
+    }
+
+    return address;
   }
 
-  async updateAddress(id: number, dto: UpdateAddressDto) {
+  async updateAddress(id: number, dto: UpdateAddressDto, userId: number) {
     let coords = {};
     if (dto.latitude != null && dto.longitude != null) {
       coords = await validateCoordinates(
@@ -45,13 +53,29 @@ export class AddressService {
     }
 
     const dataToUpdate = { ...dto, ...coords };
-    return this.prisma.address.update({
-      where: { id },
+
+    const updated = await this.prisma.address.updateMany({
+      where: { id, userId },
       data: dataToUpdate,
     });
+    if (updated.count === 0) {
+      throw new BadRequestException('No puedes actualizar esta direccion');
+    }
+    return updated;
   }
 
-  async deleteAddress(id: number) {
-    return this.prisma.address.delete({ where: { id } });
+  async deleteAddress(id: number, userId: number) {
+    const deleted = await this.prisma.address.deleteMany({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (deleted.count === 0) {
+      throw new BadRequestException('No puedes eliminar esta dirección');
+    }
+
+    return { message: 'Dirección eliminada correctamente' };
   }
 }

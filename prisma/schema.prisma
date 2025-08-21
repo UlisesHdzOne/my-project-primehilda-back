@@ -12,13 +12,17 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role     Role   @default(CONSUMER)
+  role      Role     @default(CONSUMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  //Relaciones
+  addresses Address[] // Relación uno a muchos
 }
 
 model Address {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
+  userId    Int
   name      String
   street    String
   colony    String
@@ -28,6 +32,9 @@ model Address {
   longitude Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  //Relaciones
+  user User @relation(fields: [userId], references: [id])
 }
 
 enum Role {
