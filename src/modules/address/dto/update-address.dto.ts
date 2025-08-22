@@ -23,9 +23,9 @@ export class UpdateAddressDto {
 
   @IsOptional()
   @IsNumber()
-  latitude?: number;
-
+  latitude: number;
+  
   @IsOptional()
   @IsNumber()
-  longitude?: number;
+  longitude: number;
 }

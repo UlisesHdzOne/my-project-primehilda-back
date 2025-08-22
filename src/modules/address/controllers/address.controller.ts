@@ -19,22 +19,22 @@ import type { AuthRequest } from 'src/types/express';
 @Controller('addresses')
 @UseGuards(JwtAuthGuard)
 export class AddressController {
-  constructor(private readonly addresService: AddressService) {}
+  constructor(private readonly addressService: AddressService) {}
 
-  // POST /addres/create
-  @Post('create')
+  // POST /addresses/
+  @Post()
   async create(@Body() dto: CreateAddressDto, @Req() req: AuthRequest) {
-    return this.addresService.createAddress(dto, req.user.id);
+    return this.addressService.createAddress(dto, req.user.id);
   }
-  //GET /addres
+  //GET /addresses/
   @Get()
   async findAll(@Req() req: AuthRequest) {
-    return this.addresService.getAddress(req.user.id);
+    return this.addressService.getAddress(req.user.id);
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.addresService.getAddressById(Number(id),req.user.id);
+    return this.addressService.getAddressById(Number(id),req.user.id);
   }
 
   @Patch(':id')
@@ -43,11 +43,11 @@ export class AddressController {
     @Body() dto: UpdateAddressDto,
     @Req() req: AuthRequest,
   ) {
-    return this.addresService.updateAddress(Number(id), dto, req.user.id);
+    return this.addressService.updateAddress(dto, req.user.id,Number(id));
   }
 
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.addresService.deleteAddress(Number(id), req.user.id);
+    return this.addressService.deleteAddress(Number(id), req.user.id);
   }
 }
