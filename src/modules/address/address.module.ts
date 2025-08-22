@@ -9,9 +9,13 @@ import { JwtModule } from '../auth/jwt/jwt.module';
 
 
 @Module({
+//otros módulos que necesitas dentro de este módulo
   imports: [HttpModule,JwtModule],
+//los controladores que gestionan las rutas del módulo
   controllers: [AddressController],
-  providers: [AddressService, PrismaService, GeocodingService,CacheService],
+//los servicios que este módulo ofrece internamente
+  providers: [AddressService, PrismaService, GeocodingService,CacheService], 
+//solo los servicios que quieres que otros módulos puedan usar
   exports: [GeocodingService,CacheService],
 })
 export class AddressModule {}
