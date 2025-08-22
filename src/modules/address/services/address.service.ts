@@ -5,6 +5,7 @@ import { GeocodingService } from './geocoding.service';
 import { CacheService } from './cache.service';
 import { validateAddress } from '../utils/address.validator';
 import { UpdateAddressDto } from '../dto/update-address.dto';
+import { error } from 'console';
 
 @Injectable()
 export class AddressService {
@@ -15,9 +16,25 @@ export class AddressService {
   ) {}
 
   async createAddress(dto: CreateAddressDto, userId: number) {
-    await validateAddress(dto, userId, this.prisma, this.geo, this.cache);
+    const normalizedLat = parseFloat(dto.latitude.toFixed(6));
+    const normalizedLng = parseFloat(dto.longitude.toFixed(6));
+    //validar (con las coords normalizadas)
+    await validateAddress(
+      { ...dto, latitude: normalizedLat, longitude: normalizedLng },
+      userId,
+      this.prisma,
+      this.geo,
+      this.cache,
+    );
 
-    return this.prisma.address.create({ data: { ...dto, userId } });
+    return this.prisma.address.create({
+      data: {
+        ...dto,
+        latitude: normalizedLat,
+        longitude: normalizedLng,
+        userId,
+      },
+    });
   }
 
   async getAddress(userId: number) {
@@ -36,17 +53,33 @@ export class AddressService {
     return address;
   }
 
-  async updateAddress(id: number, dto: UpdateAddressDto, userId: number) {
-    await validateAddress(dto, userId, this.prisma, this.geo, this.cache, true);
+  async updateAddress(dto: UpdateAddressDto, userId: number, id: number) {
+    //normalizar
+    const normalizedLat = parseFloat(dto.latitude.toFixed(6));
+    const normalizedLng = parseFloat(dto.longitude.toFixed(6));
 
-    const updated = await this.prisma.address.updateMany({
+    await validateAddress(
+      { ...dto, latitude: normalizedLat, longitude: normalizedLng },
+      userId,
+      this.prisma,
+      this.geo,
+      this.cache,
+      true,
+      id,
+    );
+
+    const updated = await this.prisma.address.update({
       where: { id, userId },
-      data: dto,
+      data: {
+        ...dto,
+        latitude: normalizedLat,
+        longitude: normalizedLng,
+      },
     });
 
-    if (updated.count === 0)
+    if (!updated) {
       throw new BadRequestException('No puedes actualizar esta direccion');
-
+    }
     return updated;
   }
 

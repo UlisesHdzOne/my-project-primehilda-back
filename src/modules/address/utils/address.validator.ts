@@ -1,17 +1,10 @@
-// src/modules/address/utils/address.validator.ts
 import { BadRequestException } from '@nestjs/common';
 import { GeocodingService } from '../services/geocoding.service';
 import { CacheService } from '../services/cache.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
-
-const PRECISION = 6;
-
-function key(lat: number, lng: number) {
-  return `${lat.toFixed(PRECISION)}:${lng.toFixed(PRECISION)}`;
-}
-
+ 
 export async function validateAddress(
   dto: CreateAddressDto | UpdateAddressDto,
   userId: number,
@@ -19,8 +12,15 @@ export async function validateAddress(
   geo: GeocodingService,
   cache: CacheService,
   isUpdate = false,
+  currentId?: number, // id actual en caso de update
 ) {
-  // Validar coordenadas
+  const PRECISION = 6;
+
+  function key(lat: number, lng: number) {
+    return `${lat.toFixed(PRECISION)}:${lng.toFixed(PRECISION)}`;
+  }
+
+  // --- Validar coordenadas (siempre obligatorias) ---
   if (dto.latitude == null || dto.longitude == null) {
     throw new BadRequestException('Faltan coordenadas');
   }
@@ -28,6 +28,7 @@ export async function validateAddress(
   const normalizedLat = parseFloat(dto.latitude.toFixed(PRECISION));
   const normalizedLng = parseFloat(dto.longitude.toFixed(PRECISION));
 
+  // --- Validar que las coordenadas sean reales ---
   const cacheKey = key(normalizedLat, normalizedLng);
   const cached = cache.get(cacheKey);
 
@@ -38,14 +39,37 @@ export async function validateAddress(
 
   if (cached === null) cache.set(cacheKey, isValid);
 
-  if (!isValid) throw new BadRequestException('Coordenadas no válidas');
+  if (!isValid) {
+    throw new BadRequestException('Coordenadas no válidas');
+  }
 
-  // Validar nombre único por usuario
-  const existing = await prisma.address.findFirst({
-    where: { name: dto.name, userId },
+  // --- Validar coordenadas únicas por usuario ---
+  const existingCoords = await prisma.address.findFirst({
+    where: {
+      userId,
+      latitude: normalizedLat,
+      longitude: normalizedLng,
+      ...(isUpdate && currentId != null ? { id: { not: currentId } } : {}),
+    },
   });
 
-  if (existing && !isUpdate) {
-    throw new BadRequestException('Ya tienes una dirección con este nombre');
+  if (existingCoords) {
+    throw new BadRequestException(
+      'Ya tienes una dirección registrada en estas coordenadas',
+    );
+  }
+
+  // --- Validar nombre único por usuario (si hay nombre) ---
+  if (dto.name) {
+    const where: any = { userId, name: dto.name };
+    if (isUpdate && currentId != null) {
+      where.id = { not: currentId };
+    }
+
+    const existingName = await prisma.address.findFirst({ where });
+
+    if (existingName) {
+      throw new BadRequestException('Ya tienes una dirección con este nombre');
+    }
   }
 }
