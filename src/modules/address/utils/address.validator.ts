@@ -4,72 +4,119 @@ import { CacheService } from '../services/cache.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
- 
-export async function validateAddress(
-  dto: CreateAddressDto | UpdateAddressDto,
+import { normalizeCoordinates } from './coords.helper';
+
+// --- Función auxiliar: validar coords reales ---
+async function validateRealCoordinates(
+  latitude: number,
+  longitude: number,
+  geo: GeocodingService,
+  cache: CacheService,
+) {
+  const cacheKey = `${latitude}:${longitude}`;
+  const cached = cache.get(cacheKey);
+  const isValid =
+    cached !== null ? cached : await geo.isAddressFor(latitude, longitude);
+  if (cached === null) cache.set(cacheKey, isValid);
+  if (!isValid) throw new BadRequestException('Coordenadas no válidas');
+}
+
+// --- Función auxiliar: validar coords únicas ---
+async function validateUniqueCoordinates(
+  latitude: number,
+  longitude: number,
+  userId: number,
+  prisma: PrismaService,
+  excludeId?: number,
+) {
+  const where: any = { userId, latitude, longitude };
+  if (excludeId != null) where.id = { not: excludeId };
+
+  const existing = await prisma.address.findFirst({ where });
+  if (existing)
+    throw new BadRequestException(
+      'Ya existe una dirección en estas coordenadas',
+    );
+}
+
+// --- Función auxiliar: validar nombre único ---
+async function validateUniqueName(
+  name: string,
+  userId: number,
+  prisma: PrismaService,
+  excludeId?: number,
+) {
+  const where: any = { userId, name };
+  if (excludeId != null) where.id = { not: excludeId };
+
+  const existing = await prisma.address.findFirst({ where });
+  if (existing)
+    throw new BadRequestException('Ya existe una dirección con este nombre');
+}
+
+// --- Validación para crear dirección ---
+export async function validateCreateAddress(
+  dto: CreateAddressDto,
   userId: number,
   prisma: PrismaService,
   geo: GeocodingService,
   cache: CacheService,
-  isUpdate = false,
-  currentId?: number, // id actual en caso de update
 ) {
-  const PRECISION = 6;
-
-  function key(lat: number, lng: number) {
-    return `${lat.toFixed(PRECISION)}:${lng.toFixed(PRECISION)}`;
-  }
-
-  // --- Validar coordenadas (siempre obligatorias) ---
   if (dto.latitude == null || dto.longitude == null) {
-    throw new BadRequestException('Faltan coordenadas');
+    throw new BadRequestException('Las coordenadas son obligatorias');
   }
 
-  const normalizedLat = parseFloat(dto.latitude.toFixed(PRECISION));
-  const normalizedLng = parseFloat(dto.longitude.toFixed(PRECISION));
+  const coords = normalizeCoordinates(dto.latitude, dto.longitude);
+  if (!coords) throw new BadRequestException('Coordenadas inválidas');
 
-  // --- Validar que las coordenadas sean reales ---
-  const cacheKey = key(normalizedLat, normalizedLng);
-  const cached = cache.get(cacheKey);
+  await validateRealCoordinates(coords.latitude, coords.longitude, geo, cache);
+  await validateUniqueCoordinates(
+    coords.latitude,
+    coords.longitude,
+    userId,
+    prisma,
+  );
 
-  const isValid =
-    cached !== null
-      ? cached
-      : await geo.isAddressFor(normalizedLat, normalizedLng);
-
-  if (cached === null) cache.set(cacheKey, isValid);
-
-  if (!isValid) {
-    throw new BadRequestException('Coordenadas no válidas');
+  if (dto.name) {
+    await validateUniqueName(dto.name, userId, prisma);
   }
 
-  // --- Validar coordenadas únicas por usuario ---
-  const existingCoords = await prisma.address.findFirst({
-    where: {
+  return coords;
+}
+
+// --- Validación para actualizar dirección ---
+export async function validateUpdateAddress(
+  dto: UpdateAddressDto,
+  userId: number,
+  id: number,
+  prisma: PrismaService,
+  geo: GeocodingService,
+  cache: CacheService,
+) {
+  let coords: { latitude: number; longitude: number } | undefined;
+
+  if (dto.latitude != null && dto.longitude != null) {
+    coords = normalizeCoordinates(dto.latitude, dto.longitude);
+    if (!coords) throw new BadRequestException('Coordenadas inválidas');
+
+    await validateRealCoordinates(
+      coords.latitude,
+      coords.longitude,
+      geo,
+      cache,
+    );
+    await validateUniqueCoordinates(
+      coords.latitude,
+      coords.longitude,
       userId,
-      latitude: normalizedLat,
-      longitude: normalizedLng,
-      ...(isUpdate && currentId != null ? { id: { not: currentId } } : {}),
-    },
-  });
-
-  if (existingCoords) {
-    throw new BadRequestException(
-      'Ya tienes una dirección registrada en estas coordenadas',
+      prisma,
+      id,
     );
   }
 
-  // --- Validar nombre único por usuario (si hay nombre) ---
   if (dto.name) {
-    const where: any = { userId, name: dto.name };
-    if (isUpdate && currentId != null) {
-      where.id = { not: currentId };
-    }
-
-    const existingName = await prisma.address.findFirst({ where });
-
-    if (existingName) {
-      throw new BadRequestException('Ya tienes una dirección con este nombre');
-    }
+    await validateUniqueName(dto.name, userId, prisma, id);
   }
+
+  return coords;
 }

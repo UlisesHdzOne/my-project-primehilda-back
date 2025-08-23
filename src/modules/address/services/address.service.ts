@@ -3,9 +3,12 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { GeocodingService } from './geocoding.service';
 import { CacheService } from './cache.service';
-import { validateAddress } from '../utils/address.validator';
 import { UpdateAddressDto } from '../dto/update-address.dto';
-import { error } from 'console';
+import { normalizeCoordinates } from '../utils/coords.helper';
+import {
+  validateCreateAddress,
+  validateUpdateAddress,
+} from '../utils/address.validator';
 
 @Injectable()
 export class AddressService {
@@ -16,11 +19,11 @@ export class AddressService {
   ) {}
 
   async createAddress(dto: CreateAddressDto, userId: number) {
-    const normalizedLat = parseFloat(dto.latitude.toFixed(6));
-    const normalizedLng = parseFloat(dto.longitude.toFixed(6));
-    //validar (con las coords normalizadas)
-    await validateAddress(
-      { ...dto, latitude: normalizedLat, longitude: normalizedLng },
+    const coords = normalizeCoordinates(dto.latitude, dto.longitude);
+    if (!coords) throw new BadRequestException('Coordenadas inválidas');
+
+    await validateCreateAddress(
+      { ...dto, ...coords },
       userId,
       this.prisma,
       this.geo,
@@ -30,8 +33,7 @@ export class AddressService {
     return this.prisma.address.create({
       data: {
         ...dto,
-        latitude: normalizedLat,
-        longitude: normalizedLng,
+        ...coords,
         userId,
       },
     });
@@ -54,33 +56,23 @@ export class AddressService {
   }
 
   async updateAddress(dto: UpdateAddressDto, userId: number, id: number) {
-    //normalizar
-    const normalizedLat = parseFloat(dto.latitude.toFixed(6));
-    const normalizedLng = parseFloat(dto.longitude.toFixed(6));
-
-    await validateAddress(
-      { ...dto, latitude: normalizedLat, longitude: normalizedLng },
+    // Validar y normalizar solo si hay coords
+    const coords = await validateUpdateAddress(
+      dto,
       userId,
+      id,
       this.prisma,
       this.geo,
       this.cache,
-      true,
-      id,
     );
 
-    const updated = await this.prisma.address.update({
+    return this.prisma.address.update({
       where: { id, userId },
       data: {
         ...dto,
-        latitude: normalizedLat,
-        longitude: normalizedLng,
+        ...(coords ?? {}), // solo se incluyen coords si vienen
       },
     });
-
-    if (!updated) {
-      throw new BadRequestException('No puedes actualizar esta direccion');
-    }
-    return updated;
   }
 
   async deleteAddress(id: number, userId: number) {
