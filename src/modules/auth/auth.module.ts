@@ -6,12 +6,13 @@ import { HttpModule } from '@nestjs/axios';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAuthGuard } from './jwt/jwt.guard';
 import { JwtModule } from './jwt/jwt.module';
+import { AuthValidator } from './validations/auth-validations';
 
 
 @Module({
   imports:[HttpModule,JwtModule],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService,JwtAuthGuard,RolesGuard],
+  providers: [AuthService, PrismaService,JwtAuthGuard,RolesGuard,AuthValidator],
   exports: [JwtAuthGuard, RolesGuard,JwtModule],
 })
 export class AuthModule {}

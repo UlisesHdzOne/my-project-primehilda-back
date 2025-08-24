@@ -1,22 +1,25 @@
 // src/modules/auth/services/auth.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { RegisterUserDto } from '../dto/register-user.dto';
-import { validateRegisterUser, validateLoginUser } from 'src/modules/user/utils/user.validator';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from 'src/types/express';
+import { AuthValidator } from '../validations/auth-validations';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly authValidator: AuthValidator,
   ) {}
 
   async registerUser(dto: RegisterUserDto) {
-    await validateRegisterUser(dto, this.prisma);
+    const { email } = dto;
+
+    await this.authValidator.validateRegisterAll(email);
 
     const hashedPassword = await hash(dto.password, 10);
 
@@ -32,7 +35,11 @@ export class AuthService {
   }
 
   async login(dto: LoginUserDto) {
-    const user = await validateLoginUser(dto, this.prisma);
+    const { email, password } = dto;
+
+    const user = await this.authValidator.validateLogin(email, password);
+
+    if (!user) throw new UnauthorizedException('Credenciales inválidas');
 
     const payload: JwtPayload = {
       id: user.id,
