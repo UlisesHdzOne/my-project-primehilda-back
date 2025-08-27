@@ -1,12 +1,12 @@
 // src/modules/auth/services/auth.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { RegisterUserDto } from '../dto/register-user.dto';
-import { validateRegisterUser, validateLoginUser } from 'src/modules/user/utils/user.validator';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from 'src/types/express';
+import { validateLogin, validateRegister } from '../utils/auth.validator';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +16,7 @@ export class AuthService {
   ) {}
 
   async registerUser(dto: RegisterUserDto) {
-    await validateRegisterUser(dto, this.prisma);
+    await validateRegister(dto, this.prisma);
 
     const hashedPassword = await hash(dto.password, 10);
 
@@ -32,7 +32,7 @@ export class AuthService {
   }
 
   async login(dto: LoginUserDto) {
-    const user = await validateLoginUser(dto, this.prisma);
+    const user = await validateLogin(dto, this.prisma);
 
     const payload: JwtPayload = {
       id: user.id,
