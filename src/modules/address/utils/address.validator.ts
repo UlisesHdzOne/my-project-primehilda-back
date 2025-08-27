@@ -86,7 +86,7 @@ export async function validateCreateAddress(
 
 // --- Validación para actualizar dirección ---
 export async function validateUpdateAddress(
-  dto: UpdateAddressDto,
+  dto: Partial<UpdateAddressDto>,
   userId: number,
   id: number,
   prisma: PrismaService,

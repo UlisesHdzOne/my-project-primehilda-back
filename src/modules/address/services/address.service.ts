@@ -19,11 +19,8 @@ export class AddressService {
   ) {}
 
   async createAddress(dto: CreateAddressDto, userId: number) {
-    const coords = normalizeCoordinates(dto.latitude, dto.longitude);
-    if (!coords) throw new BadRequestException('Coordenadas inválidas');
-
-    await validateCreateAddress(
-      { ...dto, ...coords },
+    const coords = await validateCreateAddress(
+      dto,
       userId,
       this.prisma,
       this.geo,
@@ -55,7 +52,11 @@ export class AddressService {
     return address;
   }
 
-  async updateAddress(dto: UpdateAddressDto, userId: number, id: number) {
+  async updateAddress(
+    dto: Partial<UpdateAddressDto>,
+    userId: number,
+    id: number,
+  ) {
     // Validar y normalizar solo si hay coords
     const coords = await validateUpdateAddress(
       dto,

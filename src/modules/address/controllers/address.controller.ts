@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -33,21 +34,25 @@ export class AddressController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.addressService.getAddressById(Number(id),req.user.id);
+  async findOne(
+    @Param('id',ParseIntPipe) id:number,
+     @Req() req: AuthRequest) {
+    return this.addressService.getAddressById(id, req.user.id);
   }
 
   @Patch(':id')
   async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateAddressDto,
+    @Param('id',ParseIntPipe) id: number,
+    @Body() dto: Partial<UpdateAddressDto>,
     @Req() req: AuthRequest,
   ) {
-    return this.addressService.updateAddress(dto, req.user.id,Number(id));
+    return this.addressService.updateAddress(dto, req.user.id, id);
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.addressService.deleteAddress(Number(id), req.user.id);
+  async delete(
+  @Param('id',ParseIntPipe) id: number,
+  @Req() req: AuthRequest) {
+    return this.addressService.deleteAddress(id, req.user.id);
   }
 }
