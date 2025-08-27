@@ -1,5 +1,4 @@
 import { Role } from '@prisma/client';
-import { BaseUserDto } from './base-user.dto';
 import {
   IsBoolean,
   IsEmail,
@@ -8,7 +7,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateUserDto implements BaseUserDto {
+export class CreateUserDto   {
   @IsString()
   name: string;
 

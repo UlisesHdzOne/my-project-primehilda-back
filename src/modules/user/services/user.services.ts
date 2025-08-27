@@ -1,15 +1,19 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { Injectable } from '@nestjs/common';
-import { validateRegisterUser } from '../utils/user.validator';
 import { hash } from 'bcrypt';
+import {
+  validateEmailUpdate,
+  validateUserEmailUnique,
+  validateUserExists,
+} from '../utils/user.validator';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createUser(dto: CreateUserDto) {
-    await validateRegisterUser(dto, this.prisma);
+    await validateUserEmailUnique(dto.email, this.prisma);
     const hashedPassword = await hash(dto.password, 10);
 
     const user = await this.prisma.user.create({
@@ -29,14 +33,26 @@ export class UserService {
   }
 
   async getUserById(id: number) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return validateUserExists(id, this.prisma);
   }
 
   async updateUser(id: number, dto: Partial<CreateUserDto>) {
-    return this.prisma.user.update({ where: { id }, data: dto });
+    await validateUserExists(id, this.prisma);
+    if (dto.email) {
+      await validateEmailUpdate(id, dto.email, this.prisma);
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: dto,
+    });
+
+    const { password, ...safeUser } = updatedUser;
+    return safeUser;
   }
 
   async deleteUser(id: number) {
+    await validateUserExists(id, this.prisma);
     return this.prisma.user.delete({ where: { id } });
   }
 }

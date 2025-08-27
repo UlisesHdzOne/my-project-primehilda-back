@@ -1,7 +1,6 @@
-import { BaseUserDto } from '../../user/dto/base-user.dto';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
-export class RegisterUserDto implements BaseUserDto {
+export class RegisterUserDto {
   @IsString()
   @IsNotEmpty()
   name: string;

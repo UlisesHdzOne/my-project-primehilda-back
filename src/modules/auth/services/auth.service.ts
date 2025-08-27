@@ -6,7 +6,7 @@ import { RegisterUserDto } from '../dto/register-user.dto';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from 'src/types/express';
-import { validateLogin, validateRegister } from '../utils/auth.validator';
+import { checkUserEmailUnique, checkUserExistsByEmail,  } from '../utils/auth.validator';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +16,7 @@ export class AuthService {
   ) {}
 
   async registerUser(dto: RegisterUserDto) {
-    await validateRegister(dto, this.prisma);
+    await checkUserEmailUnique(dto.email, this.prisma);
 
     const hashedPassword = await hash(dto.password, 10);
 
@@ -32,7 +32,7 @@ export class AuthService {
   }
 
   async login(dto: LoginUserDto) {
-    const user = await validateLogin(dto, this.prisma);
+    const user = await checkUserExistsByEmail(dto.email, this.prisma);
 
     const payload: JwtPayload = {
       id: user.id,
