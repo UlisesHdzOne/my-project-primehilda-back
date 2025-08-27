@@ -1,19 +1,26 @@
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { LoginUserDto } from '../dto/login-user.dto';
+import { validateLogin, validateRegister } from '../utils/auth.validator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post('register')
   async register(@Body() dto: RegisterUserDto) {
+    await validateRegister(dto, this.prisma);
     return this.authService.registerUser(dto);
   }
 
   @Post('login')
-  async login(@Body() dto:LoginUserDto){
-    return this.authService.login(dto)
+  async login(@Body() dto: LoginUserDto) {
+    await validateLogin(dto, this.prisma);
+    return this.authService.login(dto);
   }
 }
