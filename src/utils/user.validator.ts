@@ -1,12 +1,14 @@
-import { BadRequestException } from '@nestjs/common';
+// src/utils/user.utils.ts
+
 import { PrismaService } from 'src/prisma/prisma.service';
+import { BadRequestException } from '@nestjs/common';
 
 /**
- * Valida que un email no esté siendo usado por otro usuario distinto
- * @param email - Email que se quiere asignar
- * @param prisma - Instancia de PrismaService
+ * Valida que un email no esté siendo usado por otro usuario distinto.
+ * @param email - Email que se quiere asignar.
+ * @param prisma - Instancia de PrismaService.
  * @param id? - (Opcional) ID del usuario actual para excluirlo de la validación.
- * @throws BadRequestException si el email ya pertenece a otro usuario
+ * @throws BadRequestException si el email ya pertenece a otro usuario.
  */
 export const validateEmailUnique = async (
   email: string,
@@ -22,11 +24,11 @@ export const validateEmailUnique = async (
 };
 
 /**
- * Valida que un usuario exista en la base de datos por su ID
- * @param id - ID del usuario a validar
- * @param prisma - Instancia de PrismaService
- * @returns El usuario encontrado
- * @throws BadRequestException si el usuario no existe
+ * Valida que un usuario exista en la base de datos por su ID.
+ * @param id - ID del usuario a validar.
+ * @param prisma - Instancia de PrismaService.
+ * @returns El usuario encontrado.
+ * @throws BadRequestException si el usuario no existe.
  */
 export const validateUserExists = async (id: number, prisma: PrismaService) => {
   const user = await prisma.user.findUnique({ where: { id } });
@@ -37,5 +39,3 @@ export const validateUserExists = async (id: number, prisma: PrismaService) => {
 
   return user;
 };
-
-

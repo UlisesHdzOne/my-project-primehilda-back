@@ -14,20 +14,19 @@ import {
 import { AddressService } from '../services/address.service';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
-import { JwtAuthGuard } from 'src/modules/auth/jwt/jwt.guard';
 import type { AuthRequest } from 'src/types/express';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 
 @Controller('addresses')
 @UseGuards(JwtAuthGuard)
 export class AddressController {
   constructor(private readonly addressService: AddressService) {}
 
-  // POST /addresses/
   @Post()
   async create(@Body() dto: CreateAddressDto, @Req() req: AuthRequest) {
     return this.addressService.createAddress(dto, req.user.id);
   }
-  //GET /addresses/
+  
   @Get()
   async findAll(@Req() req: AuthRequest) {
     return this.addressService.getAddress(req.user.id);
@@ -73,5 +72,4 @@ export class AddressController {
   ) {
     return this.addressService.setDefaultAddress(id, req.user.id);
   }
-
 }

@@ -5,7 +5,7 @@ import { hash } from 'bcrypt';
 import {
   validateEmailUnique,
   validateUserExists,
-} from '../utils/user.validator';
+} from 'src/utils/user.validator';
 import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
