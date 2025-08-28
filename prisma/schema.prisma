@@ -13,7 +13,7 @@ model User {
   email     String   @unique
   password  String
   phone     String   @unique
-  role      Role     @default(CONSUMER)
+  role      String   @default("CONSUMER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -37,10 +37,4 @@ model Address {
 
   //Relaciones
   user User @relation(fields: [userId], references: [id])
-}
-
-enum Role {
-  CONSUMER
-  ADMIN
-  MODERATOR
 }
