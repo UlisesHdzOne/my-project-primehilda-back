@@ -1,12 +1,14 @@
-// src/modules/auth/services/auth.service.ts
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { hash } from 'bcrypt';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from 'src/types/express';
-import { checkUserEmailUnique, checkUserExistsByEmail,  } from '../utils/auth.validator';
+import {
+  checkUserEmailUnique,
+  checkUserExistsByEmail,
+  hashPassword,
+} from 'src/utils/auth.utils';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +20,7 @@ export class AuthService {
   async registerUser(dto: RegisterUserDto) {
     await checkUserEmailUnique(dto.email, this.prisma);
 
-    const hashedPassword = await hash(dto.password, 10);
+    const hashedPassword = await hashPassword(dto.password);
 
     const user = await this.prisma.user.create({
       data: {

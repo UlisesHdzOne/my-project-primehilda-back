@@ -4,13 +4,12 @@ import { CreateAddressDto } from '../dto/create-address.dto';
 import { GeocodingService } from './geocoding.service';
 import { CacheService } from './cache.service';
 import { UpdateAddressDto } from '../dto/update-address.dto';
-import { normalizeCoordinates } from '../utils/coords.helper';
 import {
   shouldBeDefault,
   validateAddressOwnership,
   validateCreateAddress,
   validateUpdateAddress,
-} from '../utils/address.validator';
+} from 'src/utils/address.utils';
 
 @Injectable()
 export class AddressService {
