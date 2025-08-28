@@ -10,13 +10,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { UserService } from '../services/user.services';
+import { UserService } from '../services/user.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/modules/auth/jwt/jwt.guard';
 import { Roles } from 'src/modules/auth/decorators/role.decorators';
 import { Role } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
