@@ -30,6 +30,7 @@ model Address {
   zipcode   String?
   latitude  Float
   longitude Float
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
