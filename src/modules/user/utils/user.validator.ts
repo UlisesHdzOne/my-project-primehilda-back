@@ -3,23 +3,21 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 /**
  * Valida que un email no esté siendo usado por otro usuario distinto
- * @param id - ID del usuario que se está actualizando
  * @param email - Email que se quiere asignar
  * @param prisma - Instancia de PrismaService
+ * @param id? - (Opcional) ID del usuario actual para excluirlo de la validación.
  * @throws BadRequestException si el email ya pertenece a otro usuario
  */
-export const validateEmailUpdate = async (
-  id: number,
+export const validateEmailUnique = async (
   email: string,
   prisma: PrismaService,
+  id?: number,
 ) => {
   const exists = await prisma.user.findUnique({ where: { email } });
 
   // Si el email ya existe en otro usuario distinto
   if (exists && exists.id !== id) {
-    throw new BadRequestException(
-      'The email is already in use by another user',
-    );
+    throw new BadRequestException('The email is already in use by another user');
   }
 };
 
@@ -40,16 +38,4 @@ export const validateUserExists = async (id: number, prisma: PrismaService) => {
   return user;
 };
 
-/**
- * Valida que un email no esté siendo usado por otro usuario al crear un nuevo usuario.
- * @param email - Email que se quiere asignar al nuevo usuario
- * @param prisma - Instancia de PrismaService
- * @throws BadRequestException si el email ya está registrado
- */
-export const validateUserEmailUnique = async (
-  email: string,
-  prisma: PrismaService,
-) => {
-  const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists) throw new BadRequestException('Email already in use');
-};
+

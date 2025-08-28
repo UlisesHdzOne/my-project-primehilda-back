@@ -15,7 +15,9 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/modules/auth/jwt/jwt.guard';
 import { Roles } from 'src/modules/auth/decorators/role.decorators';
-import { Role } from '@prisma/client';
+
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { Role } from 'src/common/constants/role.enum';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -48,7 +50,7 @@ export class UserController {
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: Partial<CreateUserDto>,
+    @Body() dto: UpdateUserDto,
   ) {
     return this.userService.updateUser(id, dto);
   }

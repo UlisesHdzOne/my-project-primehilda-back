@@ -1,8 +1,9 @@
 // src/modules/auth/guards/roles.guard.ts
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Role } from 'src/common/constants/role.enum';
 import { JwtPayload } from 'src/types/express';
-import { Role } from '@prisma/client';
+//import { Role } from '@prisma/client';
 
 export const ROLES_KEY = 'roles';
 

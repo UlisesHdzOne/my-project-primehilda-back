@@ -3,17 +3,17 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { hash } from 'bcrypt';
 import {
-  validateEmailUpdate,
-  validateUserEmailUnique,
+  validateEmailUnique,
   validateUserExists,
 } from '../utils/user.validator';
+import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createUser(dto: CreateUserDto) {
-    await validateUserEmailUnique(dto.email, this.prisma);
+    await validateEmailUnique(dto.email, this.prisma);
     const hashedPassword = await hash(dto.password, 10);
 
     const user = await this.prisma.user.create({
@@ -36,10 +36,10 @@ export class UserService {
     return validateUserExists(id, this.prisma);
   }
 
-  async updateUser(id: number, dto: Partial<CreateUserDto>) {
+  async updateUser(id: number, dto: UpdateUserDto) {
     await validateUserExists(id, this.prisma);
     if (dto.email) {
-      await validateEmailUpdate(id, dto.email, this.prisma);
+      await validateEmailUnique(dto.email, this.prisma, id);
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -56,19 +56,19 @@ export class UserService {
     return this.prisma.user.delete({ where: { id } });
   }
 
+  async findUserByPhone(phone: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+      include: { addresses: true },
+    });
 
-async findUserByPhone(phone: string) {
-  const user = await this.prisma.user.findUnique({
-    where: { phone },
-    include: { addresses: true },
-  });
+    if (!user) {
+      throw new NotFoundException(
+        `No existe un usuario con el teléfono ${phone}`,
+      );
+    }
 
-  if (!user) {
-    throw new NotFoundException(`No existe un usuario con el teléfono ${phone}`);
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
-
-  const { password, ...safeUser } = user;
-  return safeUser;
-}
-
 }
