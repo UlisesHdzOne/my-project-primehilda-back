@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -30,6 +31,17 @@ export class AddressController {
   @Get()
   async findAll(@Req() req: AuthRequest) {
     return this.addressService.getAddress(req.user.id);
+  }
+
+  @Get('default')
+  async getDefault(@Req() req: AuthRequest) {
+    const address = await this.addressService.getDefaultAddress(req.user.id);
+    return address ?? { message: 'No hay direcciones por defecto' };
+  }
+
+  @Get('search')
+  async search(@Req() req: AuthRequest, @Query('name') name?: string) {
+    return this.addressService.searchAddresses(req.user.id, name);
   }
 
   @Get(':id')
@@ -61,4 +73,5 @@ export class AddressController {
   ) {
     return this.addressService.setDefaultAddress(id, req.user.id);
   }
+
 }

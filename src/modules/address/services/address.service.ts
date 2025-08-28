@@ -116,4 +116,20 @@ export class AddressService {
 
     return { message: 'Dirección por defecto actualizada correctamente' };
   }
+
+  async getDefaultAddress(userId: number) {
+    return this.prisma.address.findFirst({
+      where: { userId, isDefault: true },
+    });
+  }
+
+  async searchAddresses(userId: number, name?: string) {
+  return this.prisma.address.findMany({
+    where: {
+      userId,
+      name: name ? { contains: name, mode: 'insensitive' } : undefined,
+    },
+  });
+}
+
 }

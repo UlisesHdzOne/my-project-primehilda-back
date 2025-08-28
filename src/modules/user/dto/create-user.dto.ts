@@ -7,7 +7,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateUserDto   {
+export class CreateUserDto {
   @IsString()
   name: string;
 
@@ -23,4 +23,7 @@ export class CreateUserDto   {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsString()
+  phone: string;
 }

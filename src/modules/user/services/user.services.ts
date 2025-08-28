@@ -1,6 +1,6 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { hash } from 'bcrypt';
 import {
   validateEmailUpdate,
@@ -55,4 +55,20 @@ export class UserService {
     await validateUserExists(id, this.prisma);
     return this.prisma.user.delete({ where: { id } });
   }
+
+
+async findUserByPhone(phone: string) {
+  const user = await this.prisma.user.findUnique({
+    where: { phone },
+    include: { addresses: true },
+  });
+
+  if (!user) {
+    throw new NotFoundException(`No existe un usuario con el teléfono ${phone}`);
+  }
+
+  const { password, ...safeUser } = user;
+  return safeUser;
+}
+
 }

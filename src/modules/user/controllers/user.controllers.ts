@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from '../services/user.services';
@@ -21,15 +22,19 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   // POST /users/create
   @Post('create')
   async create(@Body() dto: CreateUserDto) {
     return this.userService.createUser(dto);
   }
+
+  @Get('search')
+  async searchUserByPhone(@Query('phone') phone: string) {
+    return this.userService.findUserByPhone(phone);
+  }
+
   //GET /users
   @Get()
   async findAll() {
@@ -37,8 +42,7 @@ export class UserController {
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.userService.getUserById(id);
   }
 
@@ -47,7 +51,6 @@ export class UserController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: Partial<CreateUserDto>,
   ) {
- 
     return this.userService.updateUser(id, dto);
   }
 
