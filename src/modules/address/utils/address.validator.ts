@@ -120,3 +120,22 @@ export async function validateUpdateAddress(
 
   return coords;
 }
+
+// --- Validar si la dirección debe ser default ---
+export async function shouldBeDefault(userId: number, prisma: PrismaService) {
+  const count = await prisma.address.count({ where: { userId } });
+  return count === 0; 
+}
+
+// Validar que la dirección exista y pertenezca al usuario
+export async function validateAddressOwnership(
+  addressId: number,
+  userId: number,
+  prisma: PrismaService,
+) {
+  const address = await prisma.address.findUnique({ where: { id: addressId } });
+  if (!address || address.userId !== userId) {
+    throw new BadRequestException('No puedes modificar esta dirección');
+  }
+  return address;
+}

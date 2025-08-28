@@ -16,7 +16,6 @@ import { UpdateAddressDto } from '../dto/update-address.dto';
 import { JwtAuthGuard } from 'src/modules/auth/jwt/jwt.guard';
 import type { AuthRequest } from 'src/types/express';
 
-
 @Controller('addresses')
 @UseGuards(JwtAuthGuard)
 export class AddressController {
@@ -35,14 +34,15 @@ export class AddressController {
 
   @Get(':id')
   async findOne(
-    @Param('id',ParseIntPipe) id:number,
-     @Req() req: AuthRequest) {
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthRequest,
+  ) {
     return this.addressService.getAddressById(id, req.user.id);
   }
 
   @Patch(':id')
   async update(
-    @Param('id',ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: Partial<UpdateAddressDto>,
     @Req() req: AuthRequest,
   ) {
@@ -50,9 +50,15 @@ export class AddressController {
   }
 
   @Delete(':id')
-  async delete(
-  @Param('id',ParseIntPipe) id: number,
-  @Req() req: AuthRequest) {
+  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
     return this.addressService.deleteAddress(id, req.user.id);
+  }
+
+  @Patch(':id/default')
+  async setDefault(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthRequest,
+  ) {
+    return this.addressService.setDefaultAddress(id, req.user.id);
   }
 }

@@ -6,6 +6,8 @@ import { CacheService } from './cache.service';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { normalizeCoordinates } from '../utils/coords.helper';
 import {
+  shouldBeDefault,
+  validateAddressOwnership,
   validateCreateAddress,
   validateUpdateAddress,
 } from '../utils/address.validator';
@@ -19,6 +21,8 @@ export class AddressService {
   ) {}
 
   async createAddress(dto: CreateAddressDto, userId: number) {
+    const isDefault = await shouldBeDefault(userId, this.prisma);
+
     const coords = await validateCreateAddress(
       dto,
       userId,
@@ -32,6 +36,7 @@ export class AddressService {
         ...dto,
         ...coords,
         userId,
+        isDefault,
       },
     });
   }
@@ -89,5 +94,26 @@ export class AddressService {
     }
 
     return { message: 'Dirección eliminada correctamente' };
+  }
+
+  async setDefaultAddress(addressId: number, userId: number) {
+    const address = await validateAddressOwnership(
+      addressId,
+      userId,
+      this.prisma,
+    );
+
+    await this.prisma.$transaction([
+      this.prisma.address.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      }),
+      this.prisma.address.update({
+        where: { id: address.id },
+        data: { isDefault: true },
+      }),
+    ]);
+
+    return { message: 'Dirección por defecto actualizada correctamente' };
   }
 }
