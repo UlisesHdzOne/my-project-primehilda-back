@@ -19,7 +19,7 @@ export const checkUserEmailUnique = async (
 ): Promise<void> => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (user) {
-    throw new BadRequestException('El correo electrónico ya está registrado.');
+    throw new BadRequestException('The email address is already registered.');
   }
 };
 
@@ -29,7 +29,7 @@ export const checkUserExistsByEmail = async (
 ) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    throw new BadRequestException('El usuario no existe.');
+    throw new BadRequestException('The email address is already registered.');
   }
   return user;
 };

@@ -1,31 +1,4 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { CreateAddressDto } from './create-address.dto';
+import { PartialType } from '@nestjs/swagger';
 
-export class UpdateAddressDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  street?: string;
-
-  @IsOptional()
-  @IsString()
-  colony?: string;
-
-  @IsOptional()
-  @IsString()
-  reference?: string;
-
-  @IsOptional()
-  @IsString()
-  zipcode?: string;
-
-  @IsOptional()
-  @IsNumber()
-  latitude: number;
-  
-  @IsOptional()
-  @IsNumber()
-  longitude: number;
-}
+export class UpdateAddressDto  extends PartialType(CreateAddressDto) {}

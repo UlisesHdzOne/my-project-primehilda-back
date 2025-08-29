@@ -1,7 +1,5 @@
-// src/utils/user.utils.ts
-
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 /**
  * Valida que un email no esté siendo usado por otro usuario distinto.
@@ -34,7 +32,7 @@ export const validateUserExists = async (id: number, prisma: PrismaService) => {
   const user = await prisma.user.findUnique({ where: { id } });
 
   if (!user) {
-    throw new BadRequestException(`User with id ${id} does not exist`);
+    throw new NotFoundException(`User with id ${id} does not exist`);
   }
 
   return user;

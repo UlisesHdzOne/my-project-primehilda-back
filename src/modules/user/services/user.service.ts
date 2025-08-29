@@ -5,7 +5,7 @@ import { hash } from 'bcrypt';
 import {
   validateEmailUnique,
   validateUserExists,
-} from 'src/utils/user.validator';
+} from 'src/utils/user.utils';
 import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
@@ -64,7 +64,7 @@ export class UserService {
 
     if (!user) {
       throw new NotFoundException(
-        `No existe un usuario con el teléfono ${phone}`,
+        `User with phone number ${phone} does not exist`,
       );
     }
 

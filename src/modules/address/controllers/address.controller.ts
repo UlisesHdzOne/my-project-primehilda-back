@@ -38,7 +38,7 @@ export class AddressController {
     return address ?? { message: 'No hay direcciones por defecto' };
   }
 
-  @Get('search')
+  @Get(':id')
   async search(@Req() req: AuthRequest, @Query('name') name?: string) {
     return this.addressService.searchAddresses(req.user.id, name);
   }

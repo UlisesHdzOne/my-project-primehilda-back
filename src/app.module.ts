@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './modules/app/controllers/app.controller';
-import { AppService } from './modules/app/services/app.service';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
 import { UserModule } from './modules/user/user.module';
 import { AddressModule } from './modules/address/address.module';

@@ -1,5 +1,5 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { GeocodingService } from './geocoding.service';
 import { CacheService } from './cache.service';
@@ -50,7 +50,7 @@ export class AddressService {
     });
 
     if (!address || address.userId !== userId) {
-      throw new BadRequestException('No puedes acceder a esta dirección');
+      throw new NotFoundException('No puedes acceder a esta dirección');
     }
 
     return address;
@@ -89,7 +89,7 @@ export class AddressService {
     });
 
     if (deleted.count === 0) {
-      throw new BadRequestException('No puedes eliminar esta dirección');
+      throw new NotFoundException('No puedes eliminar esta dirección');
     }
 
     return { message: 'Dirección eliminada correctamente' };

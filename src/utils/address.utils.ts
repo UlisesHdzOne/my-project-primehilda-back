@@ -18,7 +18,8 @@ export const normalizeCoordinates = (
   const lat = parseFloat(latitude.toFixed(precision));
   const lng = parseFloat(longitude.toFixed(precision));
 
-  if (isNaN(lat) || isNaN(lng)) throw new BadRequestException('Coordenadas inválidas');
+  if (isNaN(lat) || isNaN(lng))
+    throw new BadRequestException('Invalid coordinates');
 
   return { latitude: lat, longitude: lng };
 };
@@ -35,7 +36,7 @@ export const validateUniqueName = async (
 
   const existing = await prisma.address.findFirst({ where });
   if (existing) {
-    throw new BadRequestException('Ya existe una dirección con este nombre');
+    throw new BadRequestException('An address with this name already exists');
   }
 };
 
@@ -52,7 +53,9 @@ export const validateUniqueCoordinates = async (
 
   const existing = await prisma.address.findFirst({ where });
   if (existing) {
-    throw new BadRequestException('Ya existe una dirección en estas coordenadas');
+    throw new BadRequestException(
+      'An address at these coordinates already exists',
+    );
   }
 };
 
@@ -65,9 +68,10 @@ export const validateRealCoordinates = async (
 ): Promise<void> => {
   const cacheKey = `${latitude}:${longitude}`;
   const cached = cache.get(cacheKey);
-  const isValid = cached !== null ? cached : await geo.isAddressFor(latitude, longitude);
+  const isValid =
+    cached !== null ? cached : await geo.isAddressFor(latitude, longitude);
   if (cached === null) cache.set(cacheKey, isValid);
-  if (!isValid) throw new BadRequestException('Coordenadas no válidas');
+  if (!isValid) throw new BadRequestException('Invalid coordinates');
 };
 
 // Valida si la nueva dirección debe ser la predeterminada.
@@ -87,7 +91,7 @@ export const validateAddressOwnership = async (
 ) => {
   const address = await prisma.address.findUnique({ where: { id: addressId } });
   if (!address || address.userId !== userId) {
-    throw new BadRequestException('No puedes modificar esta dirección');
+    throw new BadRequestException('You cannot modify this address');
   }
   return address;
 };
@@ -101,10 +105,15 @@ export const validateCreateAddress = async (
   cache: CacheService,
 ) => {
   const coords = normalizeCoordinates(dto.latitude, dto.longitude);
-  if (!coords) throw new BadRequestException('Coordenadas inválidas');
+  if (!coords) throw new BadRequestException('You cannot modify this address');
 
   await validateRealCoordinates(coords.latitude, coords.longitude, geo, cache);
-  await validateUniqueCoordinates(coords.latitude, coords.longitude, userId, prisma);
+  await validateUniqueCoordinates(
+    coords.latitude,
+    coords.longitude,
+    userId,
+    prisma,
+  );
 
   if (dto.name) {
     await validateUniqueName(dto.name, userId, prisma);
@@ -125,12 +134,23 @@ export const validateUpdateAddress = async (
   let coords;
   if (dto.latitude != null && dto.longitude != null) {
     coords = normalizeCoordinates(dto.latitude, dto.longitude);
-    if (!coords) throw new BadRequestException('Coordenadas inválidas');
+    if (!coords) throw new BadRequestException('Invalid coordinates');
 
-    await validateRealCoordinates(coords.latitude, coords.longitude, geo, cache);
-    await validateUniqueCoordinates(coords.latitude, coords.longitude, userId, prisma, id);
+    await validateRealCoordinates(
+      coords.latitude,
+      coords.longitude,
+      geo,
+      cache,
+    );
+    await validateUniqueCoordinates(
+      coords.latitude,
+      coords.longitude,
+      userId,
+      prisma,
+      id,
+    );
   }
-  
+
   if (dto.name) {
     await validateUniqueName(dto.name, userId, prisma, id);
   }
