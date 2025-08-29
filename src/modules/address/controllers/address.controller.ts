@@ -26,9 +26,14 @@ export class AddressController {
   async create(@Body() dto: CreateAddressDto, @Req() req: AuthRequest) {
     return this.addressService.createAddress(dto, req.user.id);
   }
-  
+
+  // ✅ Combina las funciones de listar todas y buscar por nombre en un solo endpoint
+  // Ejemplos: GET /addresses o GET /addresses?name=mi-casa
   @Get()
-  async findAll(@Req() req: AuthRequest) {
+  async findAll(@Req() req: AuthRequest, @Query('name') name?: string) {
+    if (name) {
+      return this.addressService.searchAddresses(req.user.id, name);
+    }
     return this.addressService.getAddress(req.user.id);
   }
 
@@ -36,11 +41,6 @@ export class AddressController {
   async getDefault(@Req() req: AuthRequest) {
     const address = await this.addressService.getDefaultAddress(req.user.id);
     return address ?? { message: 'No hay direcciones por defecto' };
-  }
-
-  @Get(':id')
-  async search(@Req() req: AuthRequest, @Query('name') name?: string) {
-    return this.addressService.searchAddresses(req.user.id, name);
   }
 
   @Get(':id')
