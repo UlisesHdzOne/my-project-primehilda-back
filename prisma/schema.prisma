@@ -19,6 +19,7 @@ model User {
 
   //Relaciones
   addresses Address[] // Relación uno a muchos
+  autos     Auto[]
 }
 
 model Address {
@@ -36,5 +37,20 @@ model Address {
   updatedAt DateTime @updatedAt
 
   //Relaciones
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Auto {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  marca    String
+  modelo   String
+  color    String
+  anio     Int
+  placas   String   @unique
+  precio   Float
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+
   user User @relation(fields: [userId], references: [id])
 }
