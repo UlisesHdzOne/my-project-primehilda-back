@@ -8,7 +8,15 @@ import { AppService } from './services/app.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
-  imports: [UserModule, AddressModule, AuthModule, ConfigModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    UserModule,
+    AddressModule,
+    AuthModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

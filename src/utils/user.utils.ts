@@ -17,7 +17,9 @@ export const validateEmailUnique = async (
 
   // Si el email ya existe en otro usuario distinto
   if (exists && exists.id !== id) {
-    throw new BadRequestException('The email is already in use by another user');
+    throw new BadRequestException(
+      'The email is already in use by another user',
+    );
   }
 };
 

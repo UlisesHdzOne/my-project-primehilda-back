@@ -1,35 +1,23 @@
 import { hash, compare } from 'bcrypt';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
 
+/**
+ * Hashea una contraseña usando bcrypt.
+ * @param password Contraseña en texto plano
+ * @returns Contraseña hasheada
+ */
 export const hashPassword = async (password: string): Promise<string> => {
   return hash(password, 10);
 };
 
+/**
+ * Compara una contraseña en texto plano con su hash.
+ * @param password Contraseña en texto plano
+ * @param hashedPassword Contraseña hasheada
+ * @returns true si coinciden, false si no
+ */
 export const comparePassword = async (
   password: string,
-  hash: string,
+  hashedPassword: string,
 ): Promise<boolean> => {
-  return compare(password, hash);
-};
-
-export const checkUserEmailUnique = async (
-  email: string,
-  prisma: PrismaService,
-): Promise<void> => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (user) {
-    throw new BadRequestException('The email address is already registered.');
-  }
-};
-
-export const checkUserExistsByEmail = async (
-  email: string,
-  prisma: PrismaService,
-) => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    throw new BadRequestException('The email address is already registered.');
-  }
-  return user;
+  return compare(password, hashedPassword);
 };

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { JwtService, JwtModule as NestJwtModule } from '@nestjs/jwt';
-import { ConfigService, ConfigModule } from '@nestjs/config';
+import { JwtModule as NestJwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -8,13 +8,22 @@ import { ConfigService, ConfigModule } from '@nestjs/config';
     NestJwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRES_IN') },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          console.error('⚠️ JWT_SECRET no está definido en tu .env');
+          throw new Error('JWT_SECRET no definido');
+        }
+
+        return {
+          secret,
+          signOptions: {
+            expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '1h',
+          },
+        };
+      },
     }),
   ],
-  providers: [JwtService],
-  exports: [NestJwtModule, JwtService],
+  exports: [NestJwtModule],
 })
 export class JwtModule {}
