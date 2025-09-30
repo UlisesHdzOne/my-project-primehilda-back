@@ -10,6 +10,7 @@ datasource db {
 model User {
   id        Int      @id @default(autoincrement())
   name      String
+  lastName  String @default("modificar apellido")
   email     String   @unique
   password  String
   phone     String   @unique

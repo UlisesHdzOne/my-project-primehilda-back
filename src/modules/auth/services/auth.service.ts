@@ -36,6 +36,7 @@ export class AuthService {
     const registerResponse: RegisterResponseDto = {
       id: user.id,
       name: user.name,
+      lastName: user.lastName,
       email: user.email,
       role: user.role,
       phone: user.phone,
@@ -48,11 +49,7 @@ export class AuthService {
   ): Promise<{ user: LoginResponseDto; token: string }> {
     AuthLoginValidator.validarEntrada(dto);
 
-    const user = await AuthBusinessValidatorLogin.validar(
-      dto.email,
-      dto.password,
-      this.prisma,
-    );
+    const user = await AuthBusinessValidatorLogin.validar(dto, this.prisma);
 
     const payload: JwtPayload = {
       id: user.id,
@@ -65,6 +62,7 @@ export class AuthService {
     const loginResponse: LoginResponseDto = {
       id: user.id,
       name: user.name,
+      lastName: user.lastName,
       email: user.email,
       phone: user.phone,
       role: user.role,
