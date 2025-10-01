@@ -1,24 +1,32 @@
-// src/validators/auth-login.validator.ts
-import { AUTH_MESSAGES } from 'src/common/constants/index';
 import { throwBadRequest } from 'src/common/helper/error.helper';
-import { LoginUserDto } from 'src/modules/auth/dto/login-user.dto';
+import { UserCreateValidator } from './user-create.validator';
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
 
 export const AuthLoginValidator = {
-  email: (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-
-  password: (password: string): boolean => password.trim().length > 0,
-
-  validarEntrada: (dto: LoginUserDto): void => {
+  validarEntrada(dto: LoginInput): void {
     const errors: string[] = [];
 
-    if (!AuthLoginValidator.email(dto.email)) {
-      errors.push(AUTH_MESSAGES.emailInvalido);
+    const keys: (keyof LoginInput)[] = ['email', 'password'];
+
+    for (const key of keys) {
+      const value = dto[key];
+
+      if (!value) {
+        errors.push(UserCreateValidator.messages[key]);
+        continue;
+      }
+
+      if (!UserCreateValidator.rules[key](String(value))) {
+        errors.push(UserCreateValidator.messages[key]);
+      }
     }
 
-    if (!AuthLoginValidator.password(dto.password)) {
-      errors.push(AUTH_MESSAGES.passwordRequerida);
+    if (errors.length > 0) {
+      throwBadRequest(errors);
     }
-
-    if (errors.length > 0) throwBadRequest(errors);
   },
 };

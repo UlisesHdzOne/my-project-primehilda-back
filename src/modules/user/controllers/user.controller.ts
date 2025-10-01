@@ -12,13 +12,13 @@ import {
 } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { RolesGuard } from 'src/guards/roles.guard';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
-import { Roles } from 'src/modules/auth/decorators/role.decorators';
-
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { Role } from 'src/common/constants/role.enum';
+import { SearchUserDto } from '../dto/search-user.dto';
 import { UserResponseDto } from 'src/modules/auth/dto/user-response.dto';
+import { Roles } from 'src/modules/auth/decorators/role.decorators';
+import { Role } from 'src/common/constants/role.enum';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,39 +26,48 @@ import { UserResponseDto } from 'src/modules/auth/dto/user-response.dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // POST /users/create
+  // Crear un nuevo usuario
   @Post('create')
   async create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
-    const user = await this.userService.createUser(dto);
-    return user;
+    return this.userService.createUser(dto);
   }
 
+  // Buscar usuario por teléfono
   @Get('search')
-  async searchUserByPhone(@Query('phone') phone: string) {
-    return this.userService.findUserByPhone(phone);
+  async searchUserByPhone(
+    @Query() dto: SearchUserDto,
+  ): Promise<UserResponseDto> {
+    return this.userService.findUserByPhone(dto.phone);
   }
 
-  //GET /users
+  // Obtener todos los usuarios
   @Get()
-  async findAll() {
+  async findAll(): Promise<UserResponseDto[]> {
     return this.userService.getUsers();
   }
 
+  // Obtener usuario por ID
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<UserResponseDto> {
     return this.userService.getUserById(id);
   }
 
+  // Actualizar usuario
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUserDto,
-  ) {
+  ): Promise<UserResponseDto> {
     return this.userService.updateUser(id, dto);
   }
 
+  // Eliminar usuario
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<UserResponseDto> {
     return this.userService.deleteUser(id);
   }
 }
