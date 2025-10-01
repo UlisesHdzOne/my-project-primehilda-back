@@ -1,4 +1,3 @@
-//import { Role } from '@prisma/client';
 import {
   IsBoolean,
   IsEmail,
@@ -12,14 +11,8 @@ export class CreateUserDto {
   @IsString()
   name: string;
 
-  @IsString()
-  lastName: string;
-
   @IsEmail()
   email: string;
-
-  @IsString()
-  password: string;
 
   @IsEnum(Role)
   role: Role;

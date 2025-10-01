@@ -8,25 +8,23 @@ import {
 
 export class RegisterUserDto {
   @IsString()
-  @IsNotEmpty({ message: 'El nombre es obligatorio' })
+  @IsNotEmpty()
   name: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'El apellido es obligatorio' })
+  @IsNotEmpty()
   lastName: string;
 
-  @IsEmail({}, { message: 'El email debe tener un formato válido' })
-  @IsNotEmpty({ message: 'El email es obligatorio' })
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'La contraseña es obligatoria' })
-  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @IsNotEmpty()
+  @MinLength(8)
   password: string;
 
   @IsString()
-  @Matches(/^(\d{10,15})$/, {
-    message: 'El teléfono debe tener entre 10 y 15 dígitos',
-  })
+  @Matches(/^(\d{10,15})$/)
   phone: string;
 }

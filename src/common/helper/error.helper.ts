@@ -4,9 +4,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-export function throwBadRequest(message: string | string[]): never {
-  throw new BadRequestException({ message, error: 'BAD_REQUEST', code: 400 });
-}
+// export function throwBadRequest(message: string | string[]): never {
+//   throw new BadRequestException({ message, error: 'BAD_REQUEST', code: 400 });
+// }
+
+export const throwBadRequest = (errors: string[]) => {
+  throw new BadRequestException({ message: errors, error: 'BAD_REQUEST' });
+};
 
 export const throwNotFound = (message: string): never => {
   throw new NotFoundException(message);

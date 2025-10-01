@@ -18,6 +18,7 @@ import { Roles } from 'src/modules/auth/decorators/role.decorators';
 
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { Role } from 'src/common/constants/role.enum';
+import { UserResponseDto } from 'src/modules/auth/dto/user-response.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -27,8 +28,9 @@ export class UserController {
 
   // POST /users/create
   @Post('create')
-  async create(@Body() dto: CreateUserDto) {
-    return this.userService.createUser(dto);
+  async create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+    const user = await this.userService.createUser(dto);
+    return user;
   }
 
   @Get('search')

@@ -2,17 +2,15 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { hash } from 'bcrypt';
-import {
-  validateEmailUnique,
-  validateUserExists,
-} from 'src/utils/user.utils';
+import { validateEmailUnique, validateUserExists } from 'src/utils/user.utils';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { UserResponseDto } from 'src/modules/auth/dto/user-response.dto';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createUser(dto: CreateUserDto) {
+  async createUser(dto: CreateUserDto): Promise<UserResponseDto> {
     await validateEmailUnique(dto.email, this.prisma);
     const hashedPassword = await hash(dto.password, 10);
 
