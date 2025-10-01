@@ -43,7 +43,7 @@ export const UserCreateValidator = {
         continue;
       }
 
-      if (!UserCreateValidator.rules[key](String(value))) {
+      if (!UserCreateValidator.rules[key](value)) {
         errors.push(UserCreateValidator.messages[key]);
       }
     }

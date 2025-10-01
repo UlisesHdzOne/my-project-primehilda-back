@@ -13,7 +13,6 @@ export const AuthRegisterValidator = {
   validarEntrada(dto: RegisterInput): void {
     const errors: string[] = [];
 
-    // Reutilizamos las reglas de UserCreateValidator, excepto role
     const keys: (keyof RegisterInput)[] = [
       'name',
       'lastName',
@@ -30,7 +29,7 @@ export const AuthRegisterValidator = {
         continue;
       }
 
-      if (!UserCreateValidator.rules[key](String(value))) {
+      if (!UserCreateValidator.rules[key](value)) {
         errors.push(UserCreateValidator.messages[key]);
       }
     }
