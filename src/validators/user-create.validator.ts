@@ -23,11 +23,11 @@ export const UserCreateValidator = {
 
   messages: {
     name: AUTH_MESSAGES.nombreInvalido,
-    lastName: AUTH_MESSAGES.apellidoInvalido ?? 'Apellido inválido',
+    lastName: AUTH_MESSAGES.apellidoInvalido,
     email: AUTH_MESSAGES.emailInvalido,
     password: AUTH_MESSAGES.passwordDebil,
     phone: AUTH_MESSAGES.telefonoInvalido,
-    role: AUTH_MESSAGES.rolInvalido ?? 'Rol inválido',
+    role: AUTH_MESSAGES.rolInvalido,
   },
 
   validarEntrada(dto: UserInput): void {

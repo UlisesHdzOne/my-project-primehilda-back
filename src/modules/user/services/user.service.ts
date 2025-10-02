@@ -1,7 +1,7 @@
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { hash } from 'bcrypt';
-
+import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserResponseDto } from 'src/modules/auth/dto/user-response.dto';
@@ -50,9 +50,15 @@ export class UserService {
     UserUpdateValidator.validarEntrada(dto);
     await UserBusinessValidatorUpdate.validar({ id, ...dto }, this.prisma); // reglas de negocio
 
+    const dataToUpdate = { ...dto };
+    if (dto.password) {
+      const salt = await bcrypt.genSalt(10);
+      dataToUpdate.password = await bcrypt.hash(dto.password, salt);
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data: dto,
+      data: dataToUpdate,
     });
 
     const { password, ...safeUser } = updatedUser;

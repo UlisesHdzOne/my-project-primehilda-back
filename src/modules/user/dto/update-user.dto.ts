@@ -6,12 +6,15 @@ import {
   IsString,
 } from 'class-validator';
 import { Role } from 'src/common/constants/role.enum';
-//import { Role } from '@prisma/client';
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
 
   @IsOptional()
   @IsEmail()
