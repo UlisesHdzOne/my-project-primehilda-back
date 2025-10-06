@@ -3,14 +3,11 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
-import { UserResponseDto } from '../dto/user-response.dto';
 import { JwtPayload } from 'src/types/express';
 import { hashPassword } from 'src/utils/auth.utils';
 import { AuthBusinessValidatorLogin } from '../validators-business/auth-business-login.validator';
-import { AuthLoginValidator } from 'src/validators/auth-login.validator';
-import { AuthRegisterValidator } from 'src/validators/auth-register.validator';
 import { AuthBusinessValidatorRegister } from '../validators-business/auth=business-register.validator';
-import { throwNotFound } from 'src/common/helper/error.helper';
+import { UserEntity } from '../entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -19,9 +16,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async registerUser(dto: RegisterUserDto): Promise<UserResponseDto> {
-    AuthRegisterValidator.validarEntrada(dto);
-
+  async registerUser(dto: RegisterUserDto): Promise<UserEntity> {
     await AuthBusinessValidatorRegister.validar(dto, this.prisma);
 
     const hashedPassword = await hashPassword(dto.password);
@@ -30,30 +25,20 @@ export class AuthService {
       data: { ...dto, password: hashedPassword },
     });
 
-    const { password, ...safeUser } = user;
-    return safeUser;
+    return new UserEntity(user);
   }
 
-  async login(
-    dto: LoginUserDto,
-  ): Promise<{ user: UserResponseDto; token: string }> {
-    AuthLoginValidator.validarEntrada(dto);
-
+  async login(dto: LoginUserDto): Promise<{ user: UserEntity; token: string }> {
     const user = await AuthBusinessValidatorLogin.validar(dto, this.prisma);
 
-    if (!user) {
-      throwNotFound('Usuario no encontrado');
-    }
-
     const payload: JwtPayload = {
-      id: user!.id,
-      email: user!.email,
-      role: user!.role,
+      id: user.id,
+      email: user.email,
+      role: user.role,
     };
 
     const token = this.jwtService.sign(payload);
 
-    const { password, ...safeUser } = user!;
-    return { user: safeUser, token };
+    return { user: new UserEntity(user), token };
   }
 }

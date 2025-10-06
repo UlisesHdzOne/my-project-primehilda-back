@@ -12,7 +12,6 @@ interface ApiResponse<T> {
   data: T;
 }
 
-// Type guard para saber si data ya está envuelto
 function isApiResponse<T>(obj: unknown): obj is ApiResponse<T> {
   if (typeof obj !== 'object' || obj === null) return false;
 

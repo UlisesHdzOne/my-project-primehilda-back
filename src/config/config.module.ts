@@ -5,8 +5,8 @@ import * as Joi from 'joi';
 @Module({
   imports: [
     NestConfigModule.forRoot({
-      isGlobal: true, // permite usarlo en cualquier módulo sin importarlo otra vez
-      envFilePath: '.env', // opcional, si quieres usar otro archivo
+      isGlobal: true,
+      envFilePath: '.env',
       validationSchema: Joi.object({
         PORT: Joi.number().default(3000),
         JWT_SECRET: Joi.string().required(),

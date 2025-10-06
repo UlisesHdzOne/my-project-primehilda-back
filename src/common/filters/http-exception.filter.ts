@@ -34,7 +34,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (typeof res === 'string') {
         message = [res];
       } else if (Array.isArray(res)) {
-        // raramente, getResponse puede devolver un array directo
         message = res as string[];
       } else if (res && typeof res === 'object') {
         const typedRes = res as ExceptionResponse;

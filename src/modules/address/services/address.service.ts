@@ -1,134 +1,144 @@
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAddressDto } from '../dto/create-address.dto';
-import { GeocodingService } from './geocoding.service';
-import { CacheService } from './cache.service';
 import { UpdateAddressDto } from '../dto/update-address.dto';
-import {
-  shouldBeDefault,
-  validateAddressOwnership,
-  validateCreateAddress,
-  validateUpdateAddress,
-} from 'src/utils/address.utils';
+import { AddressEntity } from '../entities/address.entity';
+import { throwNotFound } from 'src/common/helper/error.helper';
+import { AddressBusinessValidatorCreate } from '../validators-business/address-business-create.validator';
+import { AddressBusinessValidatorDelete } from '../validators-business/address-business-delete.validator';
+import { Address } from '@prisma/client';
 
 @Injectable()
 export class AddressService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private geo: GeocodingService,
-    private cache: CacheService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async createAddress(dto: CreateAddressDto, userId: number) {
-    const isDefault = await shouldBeDefault(userId, this.prisma);
+  private toEntity(address: Address): AddressEntity {
+    return new AddressEntity(address);
+  }
 
-    const coords = await validateCreateAddress(
-      dto,
-      userId,
+  // Crear una nueva dirección
+  async createAddress(
+    dto: CreateAddressDto,
+    userId: number,
+  ): Promise<AddressEntity> {
+    await AddressBusinessValidatorCreate.validar(
+      {
+        userId,
+        name: dto.name ?? '',
+        latitude: dto.latitude ?? 0,
+        longitude: dto.longitude ?? 0,
+        isDefault: dto.isDefault ?? false,
+      },
       this.prisma,
-      this.geo,
-      this.cache,
     );
 
-    return this.prisma.address.create({
-      data: {
-        ...dto,
-        ...coords,
-        userId,
-        isDefault,
-      },
-    });
-  }
-
-  async getAddress(userId: number) {
-    return this.prisma.address.findMany({ where: { userId } });
-  }
-
-  async getAddressById(id: number, userId: number) {
-    const address = await this.prisma.address.findUnique({
-      where: { id },
+    const address = await this.prisma.address.create({
+      data: { ...dto, userId },
     });
 
-    if (!address || address.userId !== userId) {
-      throw new NotFoundException('No puedes acceder a esta dirección');
-    }
-
-    return address;
+    return this.toEntity(address);
   }
 
+  // Obtener todas las direcciones de un usuario
+  async getAddress(userId: number): Promise<AddressEntity[]> {
+    const addresses = await this.prisma.address.findMany({ where: { userId } });
+    return addresses.map((addr) => this.toEntity(addr));
+  }
+
+  // Buscar direcciones por nombre
+  async searchAddresses(
+    userId: number,
+    name: string,
+  ): Promise<AddressEntity[]> {
+    const addresses = await this.prisma.address.findMany({
+      where: { userId, name: { contains: name, mode: 'insensitive' } },
+    });
+    return addresses.map((address) => this.toEntity(address));
+  }
+
+  // Obtener una dirección por ID
+  async getAddressById(id: number, userId: number): Promise<AddressEntity> {
+    const address = await this.prisma.address.findFirst({
+      where: { id, userId },
+    });
+
+    if (!address) throwNotFound('Dirección no encontrada');
+    return this.toEntity(address);
+  }
+
+  // Actualizar dirección
   async updateAddress(
+    id: number,
     dto: Partial<UpdateAddressDto>,
     userId: number,
-    id: number,
-  ) {
-    // Validar y normalizar solo si hay coords
-    const coords = await validateUpdateAddress(
-      dto,
-      userId,
-      id,
-      this.prisma,
-      this.geo,
-      this.cache,
-    );
-
-    return this.prisma.address.update({
+  ): Promise<AddressEntity> {
+    const existing = await this.prisma.address.findFirst({
       where: { id, userId },
-      data: {
-        ...dto,
-        ...(coords ?? {}), // solo se incluyen coords si vienen
-      },
     });
+
+    if (!existing) throwNotFound('Dirección no encontrada');
+
+    const updated = await this.prisma.address.update({
+      where: { id },
+      data: dto,
+    });
+
+    return this.toEntity(updated);
   }
 
-  async deleteAddress(id: number, userId: number) {
-    const deleted = await this.prisma.address.deleteMany({
-      where: {
-        id,
-        userId,
-      },
+  // Eliminar dirección
+  async deleteAddress(
+    id: number,
+    userId: number,
+  ): Promise<{ message: string }> {
+    await AddressBusinessValidatorDelete.validar({ id, userId }, this.prisma);
+
+    const existing = await this.prisma.address.findFirst({
+      where: { id, userId },
     });
 
-    if (deleted.count === 0) {
-      throw new NotFoundException('No puedes eliminar esta dirección');
+    if (!existing) throwNotFound('Dirección no encontrada');
+
+    await this.prisma.address.delete({ where: { id } });
+
+    // Si era por defecto, asignar otra por defecto
+    if (existing.isDefault) {
+      const another = await this.prisma.address.findFirst({
+        where: { userId },
+        orderBy: { id: 'asc' },
+      });
+
+      if (another) {
+        await this.prisma.address.update({
+          where: { id: another.id },
+          data: { isDefault: true },
+        });
+      }
     }
 
     return { message: 'Dirección eliminada correctamente' };
   }
 
-  async setDefaultAddress(addressId: number, userId: number) {
-    const address = await validateAddressOwnership(
-      addressId,
-      userId,
-      this.prisma,
-    );
-
-    await this.prisma.$transaction([
-      this.prisma.address.updateMany({
-        where: { userId },
-        data: { isDefault: false },
-      }),
-      this.prisma.address.update({
-        where: { id: address.id },
-        data: { isDefault: true },
-      }),
-    ]);
-
-    return { message: 'Dirección por defecto actualizada correctamente' };
-  }
-
-  async getDefaultAddress(userId: number) {
-    return this.prisma.address.findFirst({
-      where: { userId, isDefault: true },
+  // Establecer dirección por defecto
+  async setDefaultAddress(id: number, userId: number): Promise<AddressEntity> {
+    const address = await this.prisma.address.findFirst({
+      where: { id, userId },
     });
+
+    if (!address) throwNotFound('Dirección no encontrada');
+
+    // Desactivar otras direcciones por defecto
+    await this.prisma.address.updateMany({
+      where: { userId, isDefault: true },
+      data: { isDefault: false },
+    });
+
+    // Activar la dirección seleccionada
+    const updated = await this.prisma.address.update({
+      where: { id },
+      data: { isDefault: true },
+    });
+
+    return this.toEntity(updated);
   }
-
-  async searchAddresses(userId: number, name?: string) {
-  return this.prisma.address.findMany({
-    where: {
-      userId,
-      name: name ? { contains: name, mode: 'insensitive' } : undefined,
-    },
-  });
-}
-
 }

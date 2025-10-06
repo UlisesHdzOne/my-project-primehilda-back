@@ -3,14 +3,14 @@ import { AuthService } from '../services/auth.service';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import type { Response } from 'express';
-import { UserResponseDto } from '../dto/user-response.dto';
+import { UserEntity } from '../entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() dto: RegisterUserDto): Promise<UserResponseDto> {
+  async register(@Body() dto: RegisterUserDto): Promise<UserEntity> {
     return this.authService.registerUser(dto);
   }
 
@@ -18,7 +18,7 @@ export class AuthController {
   async login(
     @Body() dto: LoginUserDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<UserResponseDto> {
+  ): Promise<UserEntity> {
     const { user, token } = await this.authService.login(dto);
 
     res.cookie('access_token', token, {

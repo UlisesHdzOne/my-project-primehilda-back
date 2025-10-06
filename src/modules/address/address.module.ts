@@ -2,20 +2,17 @@ import { Module } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AddressController } from './controllers/address.controller';
 import { AddressService } from './services/address.service';
-import { GeocodingService } from './services/geocoding.service';
 import { HttpModule } from '@nestjs/axios';
-import { CacheService } from './services/cache.service';
 import { JwtModule } from '../auth/jwt/jwt.module';
 
-
 @Module({
-//otros módulos que necesitas dentro de este módulo
-  imports: [HttpModule,JwtModule],
-//los controladores que gestionan las rutas del módulo
+  //otros módulos que necesitas dentro de este módulo
+  imports: [HttpModule, JwtModule],
+  //los controladores que gestionan las rutas del módulo
   controllers: [AddressController],
-//los servicios que este módulo ofrece internamente
-  providers: [AddressService, PrismaService, GeocodingService,CacheService], 
-//solo los servicios que quieres que otros módulos puedan usar
-  exports: [GeocodingService,CacheService],
+  //los servicios que este módulo ofrece internamente
+  providers: [AddressService, PrismaService],
+  //solo los servicios que quieres que otros módulos puedan usar
+  exports: [],
 })
 export class AddressModule {}

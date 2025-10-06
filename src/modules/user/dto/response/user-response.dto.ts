@@ -4,5 +4,7 @@ export class UserResponseDto {
   lastName: string;
   email: string;
   role: string;
-  phone?: string;
+  phone: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

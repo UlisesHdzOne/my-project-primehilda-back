@@ -14,6 +14,6 @@ export const AuthBusinessValidatorLogin = {
 
     if (!user) throwBadRequest([AUTH_MESSAGES.credencialesInvalidas]);
 
-    return user;
+    return user as NonNullable<typeof user>;
   },
 };

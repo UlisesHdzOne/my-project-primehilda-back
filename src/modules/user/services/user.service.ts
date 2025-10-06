@@ -1,59 +1,53 @@
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { hash } from 'bcrypt';
-import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { UserResponseDto } from 'src/modules/auth/dto/user-response.dto';
-
-import { UserCreateValidator } from 'src/validators/user-create.validator';
-import { UserUpdateValidator } from 'src/validators/user-update.validator';
-
+import { UserEntity } from '../entities/user.entity';
+import { UserBusinessValidatorCreate } from '../validators-business/user-business-create.validator';
 import { UserBusinessValidatorUpdate } from '../validators-business/user-business-update.validator';
 import { UserBusinessValidatorDelete } from '../validators-business/user-business-delete.validator';
-import { UserBusinessValidatorCreate } from '../validators-business/user-business-create.validator';
-
-import { throwBadRequest } from 'src/common/helper/error.helper';
+import { hashPassword } from 'src/utils/auth.utils';
+import { throwNotFound } from 'src/common/helper/error.helper';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createUser(dto: CreateUserDto): Promise<UserResponseDto> {
-    UserCreateValidator.validarEntrada(dto);
+  private toEntity(user: User): UserEntity {
+    return new UserEntity(user);
+  }
+
+  async createUser(dto: CreateUserDto): Promise<UserEntity> {
     await UserBusinessValidatorCreate.validar(dto, this.prisma);
 
-    const hashedPassword = await hash(dto.password, 10);
+    const hashedPassword = await hashPassword(dto.password);
 
     const user = await this.prisma.user.create({
       data: { ...dto, password: hashedPassword },
     });
 
-    const { password, ...safeUser } = user;
-    return safeUser;
+    return this.toEntity(user);
   }
 
-  async getUsers(): Promise<UserResponseDto[]> {
+  async getUsers(): Promise<UserEntity[]> {
     const users = await this.prisma.user.findMany();
-    return users.map(({ password, ...safeUser }) => safeUser);
+
+    return users.map((user) => this.toEntity(user));
   }
 
-  async getUserById(id: number): Promise<UserResponseDto> {
+  async getUserById(id: number): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-
-    const { password, ...safeUser } = user;
-    return safeUser;
+    if (!user) throwNotFound('Usuario no encontrado');
+    return this.toEntity(user);
   }
 
-  async updateUser(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
-    UserUpdateValidator.validarEntrada(dto);
-    await UserBusinessValidatorUpdate.validar({ id, ...dto }, this.prisma); // reglas de negocio
+  async updateUser(id: number, dto: UpdateUserDto): Promise<UserEntity> {
+    await UserBusinessValidatorUpdate.validar({ id, ...dto }, this.prisma);
 
     const dataToUpdate = { ...dto };
     if (dto.password) {
-      const salt = await bcrypt.genSalt(10);
-      dataToUpdate.password = await bcrypt.hash(dto.password, salt);
+      dataToUpdate.password = await hashPassword(dto.password);
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -61,39 +55,26 @@ export class UserService {
       data: dataToUpdate,
     });
 
-    const { password, ...safeUser } = updatedUser;
-    return safeUser;
+    return this.toEntity(updatedUser);
   }
 
-  async deleteUser(id: number): Promise<UserResponseDto> {
+  async deleteUser(id: number): Promise<UserEntity> {
     const user = await UserBusinessValidatorDelete.validar({ id }, this.prisma);
-
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
+    if (!user) throwNotFound('Usuario no encontrado');
 
     await this.prisma.user.delete({ where: { id } });
 
-    const { password, ...safeUser } = user;
-
-    return safeUser;
+    return this.toEntity(user);
   }
 
-  async findUserByPhone(phone: string): Promise<UserResponseDto> {
-    if (!UserCreateValidator.rules.phone(phone)) {
-      throwBadRequest([UserCreateValidator.messages.phone]);
-    }
-
+  async findUserByPhone(phone: string): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({
       where: { phone },
       include: { addresses: true },
     });
 
-    if (!user) {
-      throw new NotFoundException(`Usuario con teléfono ${phone} no existe`);
-    }
+    if (!user) throwNotFound(`Usuario con teléfono ${phone} no existe`);
 
-    const { password, ...safeUser } = user;
-    return safeUser;
+    return this.toEntity(user);
   }
 }
