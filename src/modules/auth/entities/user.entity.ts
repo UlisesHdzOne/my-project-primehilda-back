@@ -8,8 +8,9 @@ export class UserEntity {
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
-  constructor(partial: Partial<UserEntity>) {
-    Object.assign(this, partial);
+  constructor(partial: Partial<UserEntity> & { password?: string }) {
+    const { password, ...rest } = partial; // omitimos password
+    Object.assign(this, rest);
   }
 
   get fullName(): string {

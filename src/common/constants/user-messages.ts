@@ -8,4 +8,12 @@ export const USER_MESSAGES = {
   usuarioCreado: 'Usuario creado correctamente',
   sinPermisoActualizarAuto: 'No tienes permiso para actualizar este auto',
   usuarioNoEncontrado: 'El usuario no existe',
+  nombreInvalido: 'El nombre es inválido',
+  apellidoInvalido: 'El apellido es inválido',
+  rolInvalido: 'El rol es inválido',
+  isActiveInvalido: 'El estado es inválido',
+  telefonoInvalido: 'El teléfono es inválido',
+  emailInvalido: 'El email es inválido',
+  passwordDebil: 'La contraseña es débil',
+  passwordRequerida: 'La contraseña es requerida',
 };

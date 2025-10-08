@@ -8,6 +8,7 @@ import { hashPassword } from 'src/utils/auth.utils';
 import { AuthBusinessValidatorLogin } from '../validators-business/auth-business-login.validator';
 import { AuthBusinessValidatorRegister } from '../validators-business/auth=business-register.validator';
 import { UserEntity } from '../entities/user.entity';
+import { Role } from 'src/common/constants/role.enum';
 
 @Injectable()
 export class AuthService {
@@ -31,10 +32,14 @@ export class AuthService {
   async login(dto: LoginUserDto): Promise<{ user: UserEntity; token: string }> {
     const user = await AuthBusinessValidatorLogin.validar(dto, this.prisma);
 
+    const role = Object.values(Role).includes(user.role as Role)
+      ? (user.role as Role)
+      : Role.USER;
+
     const payload: JwtPayload = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role,
     };
 
     const token = this.jwtService.sign(payload);
