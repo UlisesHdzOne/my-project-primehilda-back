@@ -1,33 +1,40 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateProductDto } from '../dto/create-product.dto';
+import { UpdateProductDto } from '../dto/update-product.dto';
 import { ErrorHelper, ApiError } from 'src/common/helper/error.helper';
 import { ProductRules } from './rules/product.rules';
 
-export const ProductBusinessValidatorCreate = {
-  validar: async (dto: CreateProductDto, prisma: PrismaService) => {
+export const ProductBusinessValidatorUpdate = {
+  validar: async (
+    dto: UpdateProductDto,
+    prisma: PrismaService,
+    productId: number,
+  ) => {
     const errors: ApiError[] = [];
 
     // Nombre
-    if (!ProductRules.isValidName(dto.name)) {
+    if (dto.name && !ProductRules.isValidName(dto.name)) {
       errors.push({
         field: 'name',
-        message: 'El nombre es obligatorio y debe tener al menos 3 caracteres.',
+        message: 'El nombre debe tener al menos 3 caracteres.',
       });
     }
-    if (!(await ProductRules.isNameUnique(dto.name, prisma))) {
+    if (
+      dto.name &&
+      !(await ProductRules.isNameUnique(dto.name, prisma, productId))
+    ) {
       errors.push({
         field: 'name',
-        message: 'Ya existe un producto con este nombre.',
+        message: 'Ya existe otro producto con este nombre.',
       });
     }
 
     // Precio
-    if (!ProductRules.isValidPrice(dto.price)) {
+    if (dto.price != null && !ProductRules.isValidPrice(dto.price)) {
       errors.push({ field: 'price', message: 'El precio debe ser mayor a 0.' });
     }
 
     // Categoría
-    if (!ProductRules.isValidCategory(dto.category)) {
+    if (dto.category && !ProductRules.isValidCategory(dto.category)) {
       errors.push({
         field: 'category',
         message: `La categoría "${dto.category}" no es válida.`,

@@ -1,5 +1,5 @@
 import { PrismaService } from 'src/prisma/prisma.service';
-import { throwBadRequest } from 'src/common/helper/error.helper';
+import { ErrorHelper, ApiError } from 'src/common/helper/error.helper';
 import { ADDRESS_MESSAGES } from 'src/common/constants';
 import { AddressRules } from './rules/address.rules';
 
@@ -10,16 +10,22 @@ export interface AddressBusinessDeleteInput {
 
 export const AddressBusinessValidatorDelete = {
   validar: async (dto: AddressBusinessDeleteInput, prisma: PrismaService) => {
-    const errors: string[] = [];
+    const errors: ApiError[] = [];
 
-    if (!(await AddressRules.hasMoreThanOneAddress(dto.userId, prisma))) {
-      errors.push(ADDRESS_MESSAGES.noPuedeEliminarUnicaDireccion);
+    const canDelete = await AddressRules.canDeleteDefault(
+      dto.id,
+      dto.userId,
+      prisma,
+    );
+    if (!canDelete) {
+      errors.push({
+        field: 'id',
+        message: ADDRESS_MESSAGES.noSePuedeEliminarDefault,
+      });
     }
 
-    if (!(await AddressRules.canDeleteDefault(dto.id, dto.userId, prisma))) {
-      errors.push(ADDRESS_MESSAGES.noPuedeEliminarDefaultSinReemplazo);
+    if (errors.length > 0) {
+      ErrorHelper.badRequestException('Validation failed', errors);
     }
-
-    if (errors.length > 0) throwBadRequest(errors);
   },
 };

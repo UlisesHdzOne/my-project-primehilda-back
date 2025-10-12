@@ -7,7 +7,7 @@ import { UserBusinessValidatorCreate } from '../validators-business/user-busines
 import { UserBusinessValidatorUpdate } from '../validators-business/user-business-update.validator';
 import { UserBusinessValidatorDelete } from '../validators-business/user-business-delete.validator';
 import { hashPassword } from 'src/utils/auth.utils';
-import { throwNotFound } from 'src/common/helper/error.helper';
+import { ErrorHelper } from 'src/common/helper/error.helper';
 import { User } from '@prisma/client';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class UserService {
 
   async getUserById(id: number): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throwNotFound('Usuario no encontrado');
+    if (!user) ErrorHelper.notFoundException('Usuario no encontrado');
     return this.toEntity(user);
   }
 
@@ -60,7 +60,7 @@ export class UserService {
 
   async deleteUser(id: number): Promise<UserEntity> {
     const user = await UserBusinessValidatorDelete.validar({ id }, this.prisma);
-    if (!user) throwNotFound('Usuario no encontrado');
+    if (!user) ErrorHelper.notFoundException('Usuario no encontrado');
 
     await this.prisma.user.delete({ where: { id } });
 
@@ -73,7 +73,8 @@ export class UserService {
       include: { addresses: true },
     });
 
-    if (!user) throwNotFound(`Usuario con teléfono ${phone} no existe`);
+    if (!user)
+      ErrorHelper.notFoundException(`Usuario con teléfono ${phone} no existe`);
 
     return this.toEntity(user);
   }

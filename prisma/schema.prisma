@@ -15,11 +15,23 @@ model User {
   password  String
   phone     String   @unique
   role      String   @default("CONSUMER")
+
+   // Campos adicionales para clientes
+  document  String?  @unique // DNI/RUC
+  notes     String?  // Notas adicionales del cliente
+  isActive  Boolean  @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  
+
   //Relaciones
   addresses Address[] // Relación uno a muchos
+  createdOrders  Order[]   @relation("CreatedByUser") // Pedidos creados por este usuario
+  customerOrders Order[]   @relation("CustomerOrders") // Pedidos como cliente
+
+  @@map("users")
 }
 
 model Address {
@@ -33,11 +45,15 @@ model Address {
   latitude  Float
   longitude Float
   isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   //Relaciones
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[] // Pedidos que usan esta dirección
+  @@map("addresses")
+
 }
 
 model Product {
@@ -66,4 +82,66 @@ model FreeOption {
   product     Product  @relation(fields: [productId], references: [id],onDelete: Cascade)
 
   @@map("free_options")
+}
+
+
+model Order {
+  id                  Int      @id @default(autoincrement())
+  orderNumber         String   @unique // AUTO-GENERADO: ORD-20241201-001
+  customerId          Int      // Usuario con role CONSUMER
+  createdByUserId     Int      // Usuario que creó el pedido (ADMIN/EDITOR)
+  orderType           String   // "NORMAL" | "EVENT"
+  status              String   @default("PENDING") // PENDING, CONFIRMED, PREPARING, READY, DELIVERED, CANCELLED
+  
+  // Fechas y horarios
+  orderDate           DateTime @default(now())
+  deliveryDate        DateTime // Fecha programada
+  deliveryTime        String   // "14:30" formato HH:mm
+  
+  // Entrega
+  deliveryMethod      String   // "PICKUP" | "DELIVERY"
+  deliveryAddressId   Int?     // Dirección de entrega (si es delivery)
+  
+  // Totales
+  subtotal            Float    // Suma de productos
+  total               Float    // Total final
+  
+  // Sopas gratis
+  freeSoupsUsed       Int      @default(0) // Sopas gratis utilizadas
+  freeSoupsAvailable  Int      @default(0) // Sopas gratis disponibles
+  
+  // Notas
+  notes               String?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relaciones
+  customer        User      @relation("CustomerOrders", fields: [customerId], references: [id])
+  createdBy       User      @relation("CreatedByUser", fields: [createdByUserId], references: [id])
+  deliveryAddress Address?  @relation(fields: [deliveryAddressId], references: [id])
+  orderItems      OrderItem[]
+
+  @@map("orders")
+}
+
+// ============================================
+// MODELO ORDER ITEM
+// ============================================
+model OrderItem {
+  id        Int   @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  unitPrice Float
+  subtotal  Float   // quantity * unitPrice
+  
+  // Sopas gratis seleccionadas (JSON)
+  freeSoups Json?   // [{ productId: 1, quantity: 2, name: "Sopa de Pollo" }]
+
+  // Relaciones
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
 }

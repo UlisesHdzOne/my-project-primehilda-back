@@ -4,9 +4,21 @@ import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Habilitar validaciones automáticas en todos los DTOs
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // elimina propiedades que no estén en el DTO
+      forbidNonWhitelisted: true, // arroja error si hay propiedades extra
+      transform: true, // transforma tipos (por ejemplo, strings a numbers si lo pides)
+      forbidUnknownValues: true, // valores desconocidos son rechazados
+      validationError: { target: false }, // evita exponer el objeto completo
+    }),
+  );
 
   // Interceptors y Filters globales
   app.useGlobalInterceptors(new ResponseInterceptor());

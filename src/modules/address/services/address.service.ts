@@ -3,10 +3,11 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { AddressEntity } from '../entities/address.entity';
-import { throwNotFound } from 'src/common/helper/error.helper';
 import { AddressBusinessValidatorCreate } from '../validators-business/address-business-create.validator';
+import { AddressBusinessValidatorUpdate } from '../validators-business/address-business-update.validator';
 import { AddressBusinessValidatorDelete } from '../validators-business/address-business-delete.validator';
 import { Address } from '@prisma/client';
+import { ErrorHelper } from 'src/common/helper/error.helper';
 
 @Injectable()
 export class AddressService {
@@ -16,11 +17,12 @@ export class AddressService {
     return new AddressEntity(address);
   }
 
-  // Crear una nueva dirección
   async createAddress(
     dto: CreateAddressDto,
     userId: number,
   ): Promise<AddressEntity> {
+    if (!userId) ErrorHelper.unauthorizedException('Usuario no autenticado');
+
     await AddressBusinessValidatorCreate.validar(
       {
         userId,
@@ -33,19 +35,40 @@ export class AddressService {
     );
 
     const address = await this.prisma.address.create({
-      data: { ...dto, userId },
+      data: { ...dto, userId, isDefault: dto.isDefault ?? false },
     });
 
     return this.toEntity(address);
   }
 
-  // Obtener todas las direcciones de un usuario
-  async getAddress(userId: number): Promise<AddressEntity[]> {
+  async updateAddress(
+    id: number,
+    dto: Partial<UpdateAddressDto>,
+    userId: number,
+  ): Promise<AddressEntity> {
+    const existing = await this.prisma.address.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) ErrorHelper.notFoundException('Dirección no encontrada');
+
+    await AddressBusinessValidatorUpdate.validar(
+      { id, userId, ...dto },
+      this.prisma,
+    );
+
+    const updated = await this.prisma.address.update({
+      where: { id },
+      data: dto,
+    });
+
+    return this.toEntity(updated);
+  }
+
+  async getAddresses(userId: number): Promise<AddressEntity[]> {
     const addresses = await this.prisma.address.findMany({ where: { userId } });
     return addresses.map((addr) => this.toEntity(addr));
   }
 
-  // Buscar direcciones por nombre
   async searchAddresses(
     userId: number,
     name: string,
@@ -56,37 +79,14 @@ export class AddressService {
     return addresses.map((address) => this.toEntity(address));
   }
 
-  // Obtener una dirección por ID
   async getAddressById(id: number, userId: number): Promise<AddressEntity> {
     const address = await this.prisma.address.findFirst({
       where: { id, userId },
     });
-
-    if (!address) throwNotFound('Dirección no encontrada');
+    if (!address) ErrorHelper.notFoundException('Dirección no encontrada');
     return this.toEntity(address);
   }
 
-  // Actualizar dirección
-  async updateAddress(
-    id: number,
-    dto: Partial<UpdateAddressDto>,
-    userId: number,
-  ): Promise<AddressEntity> {
-    const existing = await this.prisma.address.findFirst({
-      where: { id, userId },
-    });
-
-    if (!existing) throwNotFound('Dirección no encontrada');
-
-    const updated = await this.prisma.address.update({
-      where: { id },
-      data: dto,
-    });
-
-    return this.toEntity(updated);
-  }
-
-  // Eliminar dirección
   async deleteAddress(
     id: number,
     userId: number,
@@ -96,12 +96,10 @@ export class AddressService {
     const existing = await this.prisma.address.findFirst({
       where: { id, userId },
     });
-
-    if (!existing) throwNotFound('Dirección no encontrada');
+    if (!existing) ErrorHelper.notFoundException('Dirección no encontrada');
 
     await this.prisma.address.delete({ where: { id } });
 
-    // Si era por defecto, asignar otra por defecto
     if (existing.isDefault) {
       const another = await this.prisma.address.findFirst({
         where: { userId },
@@ -119,21 +117,17 @@ export class AddressService {
     return { message: 'Dirección eliminada correctamente' };
   }
 
-  // Establecer dirección por defecto
   async setDefaultAddress(id: number, userId: number): Promise<AddressEntity> {
     const address = await this.prisma.address.findFirst({
       where: { id, userId },
     });
+    if (!address) ErrorHelper.notFoundException('Dirección no encontrada');
 
-    if (!address) throwNotFound('Dirección no encontrada');
-
-    // Desactivar otras direcciones por defecto
     await this.prisma.address.updateMany({
       where: { userId, isDefault: true },
       data: { isDefault: false },
     });
 
-    // Activar la dirección seleccionada
     const updated = await this.prisma.address.update({
       where: { id },
       data: { isDefault: true },

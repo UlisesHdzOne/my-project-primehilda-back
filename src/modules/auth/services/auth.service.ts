@@ -6,7 +6,7 @@ import { RegisterUserDto } from '../dto/register-user.dto';
 import { JwtPayload } from 'src/types/express';
 import { hashPassword } from 'src/utils/auth.utils';
 import { AuthBusinessValidatorLogin } from '../validators-business/auth-business-login.validator';
-import { AuthBusinessValidatorRegister } from '../validators-business/auth=business-register.validator';
+import { AuthBusinessValidatorRegister } from '../validators-business/auth-business-register.validator';
 import { UserEntity } from '../entities/user.entity';
 import { Role } from 'src/common/constants/role.enum';
 
@@ -18,7 +18,7 @@ export class AuthService {
   ) {}
 
   async registerUser(dto: RegisterUserDto): Promise<UserEntity> {
-    await AuthBusinessValidatorRegister.validar(dto, this.prisma);
+    await AuthBusinessValidatorRegister.validate(dto, this.prisma);
 
     const hashedPassword = await hashPassword(dto.password);
 
@@ -30,7 +30,7 @@ export class AuthService {
   }
 
   async login(dto: LoginUserDto): Promise<{ user: UserEntity; token: string }> {
-    const user = await AuthBusinessValidatorLogin.validar(dto, this.prisma);
+    const user = await AuthBusinessValidatorLogin.validate(dto, this.prisma);
 
     const role = Object.values(Role).includes(user.role as Role)
       ? (user.role as Role)
