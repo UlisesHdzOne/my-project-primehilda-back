@@ -79,6 +79,8 @@ model FreeOption {
   category    String   // Debe coincidir con ProductType
   quantity    Int
 
+  orderType   String   // Valores: "NORMAL" | "EVENT" (del OrderType enum)
+  
   product     Product  @relation(fields: [productId], references: [id],onDelete: Cascade)
 
   @@map("free_options")
@@ -96,7 +98,7 @@ model Order {
   // Fechas y horarios
   orderDate           DateTime @default(now())
   deliveryDate        DateTime // Fecha programada
-  deliveryTime        String   // "14:30" formato HH:mm
+  deliveryTime        String?   // "14:30" formato HH:mm
   
   // Entrega
   deliveryMethod      String   // "PICKUP" | "DELIVERY"
@@ -105,10 +107,6 @@ model Order {
   // Totales
   subtotal            Float    // Suma de productos
   total               Float    // Total final
-  
-  // Sopas gratis
-  freeSoupsUsed       Int      @default(0) // Sopas gratis utilizadas
-  freeSoupsAvailable  Int      @default(0) // Sopas gratis disponibles
   
   // Notas
   notes               String?
@@ -136,8 +134,7 @@ model OrderItem {
   unitPrice Float
   subtotal  Float   // quantity * unitPrice
   
-  // Sopas gratis seleccionadas (JSON)
-  freeSoups Json?   // [{ productId: 1, quantity: 2, name: "Sopa de Pollo" }]
+  isGift Boolean @default(false)
 
   // Relaciones
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)

@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { OrdersService } from '../services/orders.service';
 import { CreateOrderDto } from '../dto/create-order.dto';
@@ -17,7 +18,7 @@ import { RolesGuard } from '../../../guards/roles.guard';
 import { Roles } from '../../auth/decorators/role.decorators';
 import { UserId } from '../../../common/decorators/user-id.decorator';
 import { Role } from 'src/common/constants/role.enum';
-import { OrderStatus } from 'src/common/constants/order-status.enum';
+import { FilterOrdersDto } from '../dto/filter-orders.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
@@ -37,17 +38,14 @@ export class OrdersController {
   // Listar pedidos con filtros opcionales
   @Get()
   @Roles(Role.ADMIN, Role.EDITOR)
-  async findAll(
-    @Query('status') status?: OrderStatus,
-    @Query('customerId') customerId?: number,
-  ) {
-    return this.ordersService.findAll({ status, customerId });
+  async findAll(@Query() filters: FilterOrdersDto) {
+    return this.ordersService.findAll(filters);
   }
 
   // Obtener pedido por ID
   @Get(':id')
   @Roles(Role.ADMIN, Role.EDITOR)
-  async findOne(@Param('id') id: number) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.findOne(id);
   }
 
@@ -55,16 +53,20 @@ export class OrdersController {
   @Put(':id/status')
   @Roles(Role.ADMIN, Role.EDITOR)
   async updateStatus(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateOrderStatusDto,
   ) {
-    return this.ordersService.updateStatus(id, dto.status);
+    return this.ordersService.updateStatus(
+      id,
+      dto.status,
+      dto.confirmedDeliveryTime,
+    );
   }
 
   // Cancelar pedido
   @Delete(':id')
   @Roles(Role.ADMIN, Role.EDITOR)
-  async cancel(@Param('id') id: number) {
+  async cancel(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.cancel(id);
   }
 }

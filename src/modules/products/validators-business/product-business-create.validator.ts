@@ -7,7 +7,7 @@ export const ProductBusinessValidatorCreate = {
   validar: async (dto: CreateProductDto, prisma: PrismaService) => {
     const errors: ApiError[] = [];
 
-    // Nombre
+    // 1. Validación de Nombre
     if (!ProductRules.isValidName(dto.name)) {
       errors.push({
         field: 'name',
@@ -21,12 +21,12 @@ export const ProductBusinessValidatorCreate = {
       });
     }
 
-    // Precio
+    // 2. Validación de Precio
     if (!ProductRules.isValidPrice(dto.price)) {
       errors.push({ field: 'price', message: 'El precio debe ser mayor a 0.' });
     }
 
-    // Categoría
+    // 3. Validación de Categoría
     if (!ProductRules.isValidCategory(dto.category)) {
       errors.push({
         field: 'category',
@@ -34,16 +34,20 @@ export const ProductBusinessValidatorCreate = {
       });
     }
 
-    // FreeOptions
-    if (dto.freeOptions) {
+    // 4. Validación de Opciones Gratis (FreeOptions)
+    // 🟢 ESTA SECCIÓN ES LA QUE UTILIZA LAS REGLAS RECIÉN MODIFICADAS
+    if (dto.freeOptions && dto.freeOptions.length > 0) {
       const freeValidation = ProductRules.isValidFreeOptions(dto.freeOptions);
+
       if (!freeValidation.valid && freeValidation.errors) {
+        // Mapea los errores de la función de reglas a la estructura ApiError
         freeValidation.errors.forEach((msg, i) =>
           errors.push({ field: `freeOptions[${i}]`, message: msg }),
         );
       }
     }
 
+    // 5. Lanzar excepción si hay errores
     if (errors.length > 0) {
       ErrorHelper.badRequestException('Validation failed', errors);
     }

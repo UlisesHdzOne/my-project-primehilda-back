@@ -9,13 +9,11 @@ export class Order implements PrismaOrder {
   status: string;
   orderDate: Date;
   deliveryDate: Date;
-  deliveryTime: string;
+  deliveryTime: string | null;
   deliveryMethod: string;
   deliveryAddressId: number | null;
   subtotal: number;
   total: number;
-  freeSoupsUsed: number;
-  freeSoupsAvailable: number;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;

@@ -1,40 +1,40 @@
+import { Type } from 'class-transformer';
 import {
   IsInt,
-  IsPositive,
+  IsNotEmpty,
   IsOptional,
-  IsArray,
-  ValidateNested,
-  IsString,
+  IsPositive,
   Min,
+  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ORDER_MESSAGES } from 'src/common/constants/order-messages';
 
-export class FreeSoupDto {
-  @IsInt({ message: ORDER_MESSAGES.sopaProductoInvalido })
-  @IsPositive({ message: ORDER_MESSAGES.sopaProductoInvalido })
-  productId: number;
+// DTO para la elección específica de un producto de regalo
+export class ChosenGiftDto {
+  @IsNotEmpty()
+  @IsInt()
+  @IsPositive()
+  productId: number; // El ID del producto específico que el cliente elige (ej. Coca-Cola ID 50)
 
-  @IsInt({ message: ORDER_MESSAGES.cantidadSopaInvalida })
-  @Min(1, { message: ORDER_MESSAGES.cantidadSopaInvalida })
-  quantity: number;
-
-  @IsString({ message: ORDER_MESSAGES.nombreSopaInvalido })
-  name: string;
+  @IsNotEmpty()
+  @IsInt()
+  @IsPositive()
+  quantity: number; // La cantidad que el cliente desea de ese regalo
 }
-
 export class OrderItemDto {
+  @IsNotEmpty({ message: ORDER_MESSAGES.productoInvalido })
   @IsInt({ message: ORDER_MESSAGES.productoInvalido })
   @IsPositive({ message: ORDER_MESSAGES.productoInvalido })
   productId: number;
 
+  @IsNotEmpty({ message: ORDER_MESSAGES.cantidadProductoInvalida })
   @IsInt({ message: ORDER_MESSAGES.cantidadProductoInvalida })
   @Min(1, { message: ORDER_MESSAGES.cantidadProductoInvalida })
   quantity: number;
 
+  // Campo opcional para la lista de regalos específicos elegidos por el cliente
   @IsOptional()
-  @IsArray({ message: ORDER_MESSAGES.sopasInvalidas })
   @ValidateNested({ each: true })
-  @Type(() => FreeSoupDto)
-  freeSoups?: FreeSoupDto[];
+  @Type(() => ChosenGiftDto)
+  chosenGifts?: ChosenGiftDto[];
 }

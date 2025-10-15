@@ -1,5 +1,23 @@
+// src/modules/products/validators-business/rules/product.rules.ts
+
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProductType } from 'src/common/constants/product-types.enum';
+import { OrderType } from 'src/common/constants/order-type.enum';
+import { FreeOptionDto } from '../../dto/free-option.dto';
+
+// --- CAMBIO CLAVE AQUÍ ---
+// 🟢 Usamos un mapeo de tipo para asegurarnos de que solo se extraigan los valores de string/ProductType.
+const VALID_PRODUCT_TYPES: Set<ProductType> = new Set(
+  Object.values(ProductType).filter(
+    (val) => typeof val === 'string',
+  ) as ProductType[],
+);
+const VALID_ORDER_TYPES: Set<OrderType> = new Set(
+  Object.values(OrderType).filter(
+    (val) => typeof val === 'string',
+  ) as OrderType[],
+);
+// --- FIN DEL CAMBIO ---
 
 export const ProductRules = {
   async isNameUnique(
@@ -18,31 +36,57 @@ export const ProductRules = {
   },
 
   isValidPrice(price: number): boolean {
-    return price != null && price > 0;
+    return price != null && typeof price === 'number' && price > 0;
   },
 
   isValidCategory(category: string): boolean {
-    return Object.values(ProductType).includes(category as ProductType);
+    // Ya no se necesita aserción aquí
+    return VALID_PRODUCT_TYPES.has(category as ProductType);
   },
 
-  isValidFreeOptions(
-    freeOptions: Array<{ category: ProductType; quantity: number }>,
-  ): { valid: boolean; errors?: string[] } {
+  /**
+   * REGLA: Valida que las opciones gratis sean válidas y no estén duplicadas por (Categoría, Tipo de Orden).
+   */
+  isValidFreeOptions(freeOptions: FreeOptionDto[]): {
+    valid: boolean;
+    errors?: string[];
+  } {
     const errors: string[] = [];
-    if (!freeOptions) return { valid: true };
+    if (!freeOptions || freeOptions.length === 0) return { valid: true };
 
     let total = 0;
+    const uniqueOptions = new Set<string>();
+
     freeOptions.forEach((opt, i) => {
-      if (!Object.values(ProductType).includes(opt.category)) {
+      // Ya no se necesita aserción ni supresión de ESLint
+      if (!VALID_PRODUCT_TYPES.has(opt.category)) {
         errors.push(
-          `La categoría de freeOption en posición ${i} no es válida.`,
+          `La categoría de freeOption en posición ${i} ('${opt.category}') no es válida.`,
         );
       }
+
       if (opt.quantity <= 0) {
         errors.push(
           `La cantidad de freeOption en posición ${i} debe ser mayor a 0.`,
         );
       }
+
+      // Ya no se necesita aserción ni supresión de ESLint
+      if (!VALID_ORDER_TYPES.has(opt.orderType)) {
+        errors.push(
+          `El tipo de orden de freeOption en posición ${i} ('${opt.orderType}') no es válido. Debe ser NORMAL o EVENT.`,
+        );
+      }
+
+      // Validación de Duplicados (Categoría, Tipo de Orden)
+      const key = `${opt.category}:${opt.orderType}`;
+      if (uniqueOptions.has(key)) {
+        errors.push(
+          `Ya existe una opción de regalo para la Categoría '${opt.category}' y Tipo de Orden '${opt.orderType}' en este producto. No se permiten duplicados.`,
+        );
+      }
+      uniqueOptions.add(key);
+
       total += opt.quantity;
     });
 

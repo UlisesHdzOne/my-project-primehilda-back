@@ -4,4 +4,5 @@ export enum ProductType {
   POSTRE = 'POSTRE',
   GUARNICION = 'GUARNICION',
   POLLO = 'POLLO',
+  COMBO = 'COMBO',
 }
