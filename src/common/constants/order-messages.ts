@@ -33,5 +33,6 @@ export const ORDER_MESSAGES = {
   productoInvalido: 'Producto inválido',
   cantidadProductoInvalida: 'Cantidad de producto inválida',
   sopasInvalidas: 'Sopas inválidas',
+  orderNotFound: 'Pedido no encontrado',
   // ... más mensajes
 };

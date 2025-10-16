@@ -25,4 +25,6 @@ export const ADDRESS_MESSAGES = {
   // Autenticación
   usuarioNoExiste: 'El usuario no existe',
   passwordIncorrecta: 'La contraseña es incorrecta',
+  direccionNoEncontrada: 'Direccion no encontrada',
+  nameDuplicado: 'nombre duplicado',
 };

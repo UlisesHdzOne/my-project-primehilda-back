@@ -41,6 +41,10 @@ export class AddressController {
   ): Promise<AddressEntity[]> {
     return this.addressService.searchAddresses(userId, name);
   }
+  @Get('default') // ⬅️ AÑADIR ESTA RUTA
+  async getDefaultAddress(@UserId() userId: number): Promise<AddressEntity> {
+    return this.addressService.getDefaultAddress(userId);
+  }
 
   @Get(':id')
   async getAddressById(

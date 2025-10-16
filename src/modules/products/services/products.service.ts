@@ -3,9 +3,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
-import { ProductBusinessValidatorCreate } from '../validators-business/product-business-create.validator';
-import { ErrorHelper } from 'src/common/helper/error.helper';
 import { Prisma } from '@prisma/client';
+import { ProductValidator } from './product.validator';
+import { PRODUCT_MESSAGES } from 'src/common/constants';
 
 const FREE_OPTION_INCLUDE = {
   freeOptions: {
@@ -20,36 +20,37 @@ const FREE_OPTION_INCLUDE = {
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productValidator: ProductValidator,
+  ) {}
 
   async create(dto: CreateProductDto): Promise<ProductEntity> {
-    // 1. Validación de negocio
-    await ProductBusinessValidatorCreate.validar(dto, this.prisma);
+    await this.productValidator.validateCreate(dto);
 
-    // 2. Creación del producto en Prisma
+    const freeOptionsData = dto.freeOptions
+      ? {
+          create: dto.freeOptions.map((opt) => ({
+            category: opt.category,
+            quantity: opt.quantity,
+            orderType: opt.orderType,
+          })),
+        }
+      : undefined;
+
+    // 2. Creación: Usamos el spread operator para la mayoría de los campos
     const product = await this.prisma.product.create({
       data: {
-        name: dto.name,
-        description: dto.description,
-        price: dto.price,
-        category: dto.category,
-        image: dto.image, // ✅ Mapeo de image corregido
-        isActive: dto.isActive ?? true,
-        freeOptions: dto.freeOptions
-          ? {
-              create: dto.freeOptions.map((opt) => ({
-                category: opt.category,
-                quantity: opt.quantity,
-                orderType: opt.orderType,
-              })),
-            }
-          : undefined,
+        ...dto, // ✅ Copia name, description, price, category, image, isActive
+        isActive: dto.isActive ?? true, // Sobrescribe si no se envió, manteniendo la lógica de valor por defecto
+
+        // Sobrescribe o añade el campo relacional transformado
+        freeOptions: freeOptionsData,
       },
       include: FREE_OPTION_INCLUDE,
     });
 
-    // 3. Retorno de la entidad sin error de tipado
-    return new ProductEntity(product); // ✅ Se pasa el payload directo para evitar errores de nulos/undefined
+    return new ProductEntity(product);
   }
 
   async findAll(): Promise<ProductEntity[]> {
@@ -67,34 +68,36 @@ export class ProductService {
       include: FREE_OPTION_INCLUDE,
     });
 
-    if (!product) throw new NotFoundException('Producto no encontrado');
+    if (!product) {
+      throw new NotFoundException(PRODUCT_MESSAGES.productoNoEncontrado);
+    }
 
     return new ProductEntity(product);
   }
 
   async update(id: number, dto: UpdateProductDto): Promise<ProductEntity> {
-    const existing = await this.prisma.product.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Producto no encontrado');
+    // 1. Validar reglas de negocio y existencia
+    await this.productValidator.validateUpdate(id, dto);
 
+    // 2. Preparar FreeOptions: Eliminar y recrear si el array fue enviado
+    const freeOptionsUpdate: Prisma.ProductUpdateInput['freeOptions'] =
+      dto.freeOptions
+        ? {
+            deleteMany: {}, // Borra todas las opciones existentes
+            create: dto.freeOptions.map((opt) => ({
+              category: opt.category,
+              quantity: opt.quantity,
+              orderType: opt.orderType,
+            })),
+          }
+        : undefined;
+
+    // 3. Actualización: Usamos el spread operator para los campos simples
     const product = await this.prisma.product.update({
       where: { id },
       data: {
-        name: dto.name,
-        description: dto.description,
-        price: dto.price,
-        category: dto.category,
-        image: dto.image,
-        isActive: dto.isActive,
-        freeOptions: dto.freeOptions
-          ? {
-              deleteMany: {},
-              create: dto.freeOptions.map((opt) => ({
-                category: opt.category,
-                quantity: opt.quantity,
-                orderType: opt.orderType,
-              })),
-            }
-          : undefined,
+        ...dto, // ✅ Copia todos los campos simples (name, price, category, etc.)
+        freeOptions: freeOptionsUpdate, // Sobrescribe o añade el campo relacional transformado
       },
       include: FREE_OPTION_INCLUDE,
     });
@@ -103,17 +106,7 @@ export class ProductService {
   }
 
   async remove(id: number): Promise<void> {
-    try {
-      await this.prisma.product.delete({ where: { id } });
-    } catch (e) {
-      if (
-        e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === 'P2025'
-      ) {
-        ErrorHelper.notFoundException(`Producto con ID ${id} no encontrado.`);
-      }
-
-      throw e;
-    }
+    await this.productValidator.validateExists(id);
+    await this.prisma.product.delete({ where: { id } });
   }
 }

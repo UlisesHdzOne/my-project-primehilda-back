@@ -1,7 +1,7 @@
-// src/modules/orders/dto/filter-orders.dto.ts
 import { IsOptional, IsEnum, IsInt, IsPositive } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderStatus } from 'src/common/constants/order-status.enum';
+import { OrderType } from 'src/common/constants/order-type.enum';
 
 export class FilterOrdersDto {
   @IsOptional()
@@ -13,4 +13,8 @@ export class FilterOrdersDto {
   @IsInt()
   @IsPositive()
   customerId?: number;
+
+  @IsOptional()
+  @IsEnum(OrderType)
+  orderType?: OrderType; // Propiedad para filtrar por tipo de evento
 }
