@@ -16,4 +16,5 @@ export const USER_MESSAGES = {
   emailInvalido: 'El email es inválido',
   passwordDebil: 'La contraseña es débil',
   passwordRequerida: 'La contraseña es requerida',
+  estadoInvalido: 'El estado es inválido',
 };

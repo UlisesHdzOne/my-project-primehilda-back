@@ -1,21 +1,27 @@
 export const AUTH_MESSAGES = {
-  // 1. Unificado y Seguro para Duplicados de REGISTRO
-  // Nuevo nombre más genérico
-  registroInvalido:
-    'La información de registro es inválida o la cuenta ya existe.',
-  // Mismo mensaje, usado para fallos en email, teléfono, o cualquier otra cosa que sea "duplicado"
+  // Registro
+  emailExistente: 'El email ya está registrado',
+  general: 'No se pudo completar el registro. Verifica tus datos.',
+  telefonoExistente: 'El teléfono ya está registrado',
+  documentoExistente: 'El documento ya está registrado',
+  passwordDebil:
+    'La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas y números',
+  registroInvalido: 'Error en el registro',
 
-  // 2. Unificado y Seguro para Inicio de Sesión
+  // Login
   credencialesInvalidas: 'Credenciales inválidas',
-  // Usado para: Usuario no existe, Contraseña incorrecta, etc.
+  cuentaInactiva: 'La cuenta está inactiva',
 
-  // 3. Errores de Formato/Validación (Se mantienen)
-  emailInvalido: 'El email es inválido',
-  passwordDebil: 'La contraseña es débil',
+  // Validación DTO - ✅ AGREGAR ESTOS
+  emailInvalido: 'El email debe ser válido 2',
+  emailRequerido: 'El email es requerido 1',
   passwordRequerida: 'La contraseña es requerida',
-  nombreInvalido: 'El nombre es inválido',
-  apellidoInvalido: 'El apellido es inválido',
-  rolInvalido: 'El rol es inválido',
-  isActiveInvalido: 'El estado es inválido',
-  telefonoInvalido: 'El teléfono es inválido',
+  passwordNoString: 'La contraseña debe ser texto',
+
+  // ✅ NUEVOS - Los que usa tu DTO
+  nombreInvalido: 'El nombre debe ser texto válido',
+  nombreRequerido: 'El nombre es requerido',
+  apellidoInvalido: 'El apellido debe ser texto válido',
+  apellidoRequerido: 'El apellido es requerido',
+  telefonoInvalido: 'El teléfono debe contener solo números (10-15 dígitos)',
 };

@@ -8,6 +8,7 @@ import { AppService } from './services/app.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProductsModule } from '../products/products.module';
 import { OrdersModule } from '../orders/orders.module';
+import { MapsModule } from '../maps/maps.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OrdersModule } from '../orders/orders.module';
     AuthModule,
     ProductsModule,
     OrdersModule,
+    MapsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

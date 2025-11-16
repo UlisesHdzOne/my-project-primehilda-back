@@ -11,46 +11,40 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from '../services/user.service';
+
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { SearchUserDto } from '../dto/search-user.dto';
 import { Roles } from 'src/modules/auth/decorators/role.decorators';
 import { Role } from 'src/common/constants/role.enum';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { UserEntity } from '../entities/user.entity';
+import { UserQueryDto } from '../dto/UserQueryDto';
+import { PaginatedUsers, UserQueryService } from '../services/UserQueryService';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly userQueryService: UserQueryService,
+  ) {}
 
-  // Crear un nuevo usuario (POST /users)
+  // Crear un nuevo usuario
   @Post()
   async create(@Body() dto: CreateUserDto): Promise<UserEntity> {
     return this.userService.createUser(dto);
   }
 
-  // Buscar usuario por teléfono (GET /users/search?phone=...)
-  @Get('search')
-  async searchUserByPhone(@Query() dto: SearchUserDto): Promise<UserEntity> {
-    return this.userService.findUserByPhone(dto.phone);
-  }
-
-  // Obtener todos los usuarios (GET /users)
+  // Obtener usuarios con búsqueda y paginación
   @Get()
-  async findAll(): Promise<UserEntity[]> {
-    return this.userService.getUsers();
+  async getUsers(@Query() query: UserQueryDto): Promise<PaginatedUsers> {
+    const { q, page = 1, limit = 10 } = query;
+    return this.userQueryService.findAll(q, page, limit);
   }
 
-  // Obtener usuario por ID (GET /users/:id)
-  @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
-    return this.userService.getUserById(id);
-  }
-
-  // Actualizar usuario (PATCH /users/:id)
+  // Actualizar usuario
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -59,9 +53,15 @@ export class UserController {
     return this.userService.updateUser(id, dto);
   }
 
-  // Eliminar usuario (DELETE /users/:id)
+  // Eliminar usuario
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
     return this.userService.deleteUser(id);
+  }
+
+  // Usuario con direcciones (detalle completo)
+  @Get(':id/addresses')
+  async findOneWithAddresses(@Param('id', ParseIntPipe) id: number) {
+    return this.userQueryService.findByIdWithAddresses(id);
   }
 }

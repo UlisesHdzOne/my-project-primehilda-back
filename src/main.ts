@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,14 +12,33 @@ async function bootstrap() {
   // Habilitar validaciones automáticas en todos los DTOs
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // elimina propiedades que no estén en el DTO
-      forbidNonWhitelisted: true, // arroja error si hay propiedades extra
-      transform: true, // transforma tipos (por ejemplo, strings a numbers si lo pides)
-      forbidUnknownValues: true, // valores desconocidos son rechazados
-      validationError: { target: false }, // evita exponer el objeto completo
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      forbidUnknownValues: true,
+      validationError: { target: false },
+      exceptionFactory: (errors) => {
+        // En lugar de unir los mensajes, creamos un detalle por cada constraint
+        const details = errors.flatMap((err) => {
+          // Para cada error (err) en una propiedad, tomamos cada constraint y la mapeamos a un objeto
+          const constraints = err.constraints
+            ? Object.values(err.constraints)
+            : [];
+          return constraints.map((message) => ({
+            field: err.property,
+            message,
+          }));
+        });
+
+        return new BadRequestException({
+          message: details.map((d) => d.message),
+          error: 'Bad Request',
+          statusCode: 400,
+          details,
+        });
+      },
     }),
   );
-
   // Interceptors y Filters globales
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());

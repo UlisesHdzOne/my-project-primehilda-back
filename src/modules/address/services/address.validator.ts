@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateAddressDto } from '../dto/create-address.dto';
+import { AddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { ADDRESS_MESSAGES } from 'src/common/constants';
 import { Address } from '@prisma/client';
@@ -38,7 +38,7 @@ export class AddressValidator {
 
   // --- Validación para CREATE ---
 
-  async validateCreate(dto: CreateAddressDto, userId: number): Promise<void> {
+  async validateCreate(dto: AddressDto, userId: number): Promise<void> {
     const errors: string[] = [];
 
     // 1. Unicidad del nombre (solo si se proporciona)

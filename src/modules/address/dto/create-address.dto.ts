@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { ADDRESS_MESSAGES } from 'src/common/constants';
 
-export class CreateAddressDto {
+export class AddressDto {
   @IsOptional()
   @IsString({ message: ADDRESS_MESSAGES.nameInvalido })
   @IsNotEmpty({ message: ADDRESS_MESSAGES.nameRequerido })

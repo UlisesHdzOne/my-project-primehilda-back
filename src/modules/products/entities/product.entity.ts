@@ -1,6 +1,5 @@
-// src/modules/products/entities/product.entity.ts
+import { Product } from '@prisma/client';
 
-// Definimos la interfaz para la estructura de FreeOption que viene de Prisma
 interface FreeOptionPrisma {
   id: number;
   category: string;
@@ -8,14 +7,13 @@ interface FreeOptionPrisma {
   orderType: string;
 }
 
-// Definimos la interfaz para el Payload completo que viene de Prisma (incluye 'null')
 interface ProductPayload {
   id: number;
   name: string;
-  description: string | null; // Acepta 'null'
+  description?: string;
   price: number;
   category: string;
-  image: string | null; // Acepta 'null'
+  image?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -23,25 +21,30 @@ interface ProductPayload {
 }
 
 export class ProductEntity {
-  id: number;
-  name: string;
-  description?: string; // Espera 'undefined'
-  price: number;
-  category: string;
-  image?: string; // Espera 'undefined'
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  freeOptions?: FreeOptionPrisma[];
+  readonly id: number;
+  readonly name: string;
+  readonly description?: string;
+  readonly price: number;
+  readonly category: string;
+  readonly image?: string;
+  readonly isActive: boolean;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly freeOptions?: FreeOptionPrisma[];
 
-  // El constructor ahora acepta el payload de Prisma y realiza la limpieza de nulos
-  constructor(partial: ProductPayload) {
-    // 1. Asignar todos los campos
-    Object.assign(this, partial);
+  constructor(
+    product: Partial<Product> & { freeOptions?: FreeOptionPrisma[] },
+  ) {
+    Object.assign(this, product);
+    this.description = product.description ?? undefined;
+    this.image = product.image ?? undefined;
+    this.isActive = product.isActive ?? true;
+    this.freeOptions = product.freeOptions ?? [];
+  }
 
-    // 2. Conversión de Nulos: Convertir los campos opcionales (que son 'null' en BD)
-    // a 'undefined' para coincidir con el tipado de la clase.
-    this.description = partial.description ?? undefined;
-    this.image = partial.image ?? undefined;
+  static fromPrisma(
+    product: Product & { freeOptions?: FreeOptionPrisma[] },
+  ): ProductEntity {
+    return new ProductEntity(product);
   }
 }

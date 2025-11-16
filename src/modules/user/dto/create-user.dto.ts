@@ -29,11 +29,11 @@ export class CreateUserDto {
   @IsEnum(Role, { message: USER_MESSAGES.rolInvalido })
   role: Role;
 
-  @IsOptional()
-  @IsBoolean({ message: USER_MESSAGES.isActiveInvalido })
-  isActive?: boolean;
-
   @IsString({ message: USER_MESSAGES.telefonoInvalido })
   @Matches(/^\d{10,15}$/, { message: USER_MESSAGES.telefonoInvalido })
   phone: string;
+
+  @IsOptional({ message: USER_MESSAGES.estadoInvalido })
+  @IsBoolean({ message: USER_MESSAGES.estadoInvalido })
+  isActive?: boolean;
 }

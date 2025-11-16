@@ -33,7 +33,7 @@ model User {
 
   @@map("users")
 }
-
+ 
 model Address {
   id        Int      @id @default(autoincrement())
   userId    Int
