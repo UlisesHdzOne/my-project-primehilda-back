@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
+    "module": "commonjs", // ✅ Cambiado de "nodenext" - mejor compatibilidad con Nest
+    "moduleResolution": "node", // ✅ Cambiado de "nodenext"
     "esModuleInterop": true,
     "isolatedModules": true,
     "declaration": true,
@@ -20,6 +19,25 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+
+    // ✅ NUEVOS - Mejoras importantes
+    "strict": false, // ✅ Desactiva todas las strict rules (más flexible para aprender)
+    "useDefineForClassFields": false, // ✅ Mejor compatibilidad con decoradores
+    "exactOptionalPropertyTypes": false, // ✅ Más flexible con DTOs opcionales
+
+    // ✅ PATHS - Para imports más limpios (OPCIONAL pero recomendado)
+    "paths": {
+      "@/*": ["src/*"],
+      "@common/*": ["src/common/*"],
+      "@shared/*": ["src/shared/*"],
+      "@modules/*": ["src/modules/*"],
+      "@config/*": ["src/config/*"],
+      "@database/*": ["src/database/*"]
+    }
+  },
+  // ✅ INCLUIR esto para que funcione con paths
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
   }
 }
