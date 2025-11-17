@@ -5,6 +5,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DatabaseModule } from './database/database.module';
 import configuration from './config/configuration';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -25,7 +27,9 @@ import configuration from './config/configuration';
     // OrdersModule,
     // etc...
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     // ✅ Global Filter
     {
       provide: APP_FILTER,
@@ -36,6 +40,11 @@ import configuration from './config/configuration';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
+    // ✅ Global Guard (OPCIONAL - descomenta cuando tengas AuthModule)
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: JwtAuthGuard,
+    // },
   ],
 })
 export class AppModule {}

@@ -37,6 +37,14 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(configService.get('PORT') || 3000);
+  const port = configService.get('PORT') || 3000;
+  await app.listen(port);
+
+  console.log(`🚀 Application is running on: http://localhost:${port}`);
 }
-bootstrap();
+
+// Manejo seguro de la promesa
+bootstrap().catch(error => {
+  console.error('Error during bootstrap:', error);
+  process.exit(1);
+});

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
-@Injectable()
+@Injectable() // ✅ Asegúrate de que tenga el decorador @Injectable()
 export class AppService {
   getHello(): string {
-    return 'Hello World run server ok!';
+    return '¡Hola! El servidor de Pollería Hilda está funcionando correctamente 🚀';
   }
 }
