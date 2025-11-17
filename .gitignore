@@ -42,6 +42,11 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Prisma generated + local DB files
+/generated/prisma
+prisma/*.db
+prisma/*.sqlite
+
 # temp directory
 .temp
 .tmp
@@ -52,5 +57,11 @@ pids
 *.seed
 *.pid.lock
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
+# Diagnostic reports
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Docker local data (solo si lo usas)
+docker-data/
+
+# PM2 (solo si lo usas)
+.pm2
