@@ -2,9 +2,9 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { UsersRepository } from '../repositories/users.repository';
 import { CreateUserDto } from '../dtos/requests/create-user.dto';
 import { UserResponseDto } from '../dtos/responses/user-response.dto';
-import { hashPassword } from '@/shared/utils/auth.utils';
-import { PaginationParams } from '@/shared/interfaces/pagination.interface';
 import { UpdateUserDto } from '../dtos/requests/update-user.dto';
+import { hashPassword } from 'src/shared/utils/auth.utils';
+import { PaginationParams } from 'src/shared/interfaces/pagination.interface';
 
 @Injectable()
 export class UsersService {

@@ -1,15 +1,8 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../../shared/constants/role.enum';
-import { Request } from 'express';
 
 export const ROLES_KEY = 'roles';
-
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -20,22 +13,17 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    // Si no hay roles requeridos, permitir acceso
-    if (!requiredRoles || requiredRoles.length === 0) {
-      return true;
-    }
+    if (!requiredRoles || requiredRoles.length === 0) return true;
 
-    const req = context.switchToHttp().getRequest<Request>();
-    const user = req.user;
+    const req = context.switchToHttp().getRequest();
+    const user = req.user; // ← YA TIPADO GLOBALMENTE
 
     if (!user) {
       throw new ForbiddenException('Usuario no autenticado');
     }
 
     if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException(
-        'No tienes permisos suficientes para realizar esta acción',
-      );
+      throw new ForbiddenException('No tienes permisos suficientes para realizar esta acción');
     }
 
     return true;

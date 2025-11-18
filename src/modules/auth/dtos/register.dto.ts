@@ -1,7 +1,6 @@
-import { IsEmail, IsString, IsOptional, MinLength, IsEnum } from 'class-validator';
-import { Role } from 'src/shared/constants';
+import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 
-export class CreateUserDto {
+export class RegisterDto {
   @IsString()
   @MinLength(2)
   name: string;
@@ -20,10 +19,6 @@ export class CreateUserDto {
   @IsString()
   @MinLength(10)
   phone: string;
-
-  @IsEnum(Role)
-  @IsOptional()
-  role?: Role;
 
   @IsString()
   @IsOptional()
