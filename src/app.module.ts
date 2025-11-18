@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import configuration from './config/configuration';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { AppService } from './app.service';
 
     // ✅ Aquí irán tus otros módulos después:
     // AuthModule,
-    // UsersModule,
+    UsersModule,
     // ProductsModule,
     // OrdersModule,
     // etc...
