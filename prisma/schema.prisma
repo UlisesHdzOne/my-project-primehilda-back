@@ -51,3 +51,18 @@ model Address {
   @@map("addresses")
   @@index([userId])
 }
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  description String?
+  price     Float
+  imageUrl  String?
+  category  String
+  isActive  Boolean @default(true)
+  hasGifts   Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("products")
+}

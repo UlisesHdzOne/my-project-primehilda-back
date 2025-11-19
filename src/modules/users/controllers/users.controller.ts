@@ -1,7 +1,15 @@
-import { Controller, Get, Put, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  Param,
+  ParseIntPipe,
+  Query,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { UsersService } from '../services/users.service';
 import { UpdateUserDto } from '../dtos/requests/update-user.dto';
-import { PaginationParams } from '../../../shared/interfaces/pagination.interface';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { UseGuards } from '@nestjs/common';
 import { UserId } from 'src/common/decorators/user-id.decorator';
@@ -27,11 +35,15 @@ export class UsersController {
   }
 
   @Get()
-  getUsers(@Query() pagination: PaginationParams & { search?: string }) {
+  getUsers(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+  ) {
     return this.usersService.findAllPublic({
-      page: pagination.page || 1,
-      limit: pagination.limit || 20,
-      search: pagination.search,
+      page,
+      limit,
+      search,
     });
   }
 }
