@@ -6,6 +6,7 @@ import { RegisterDto } from '../dtos/register.dto';
 import { TokenResponseDto } from '../dtos/token-response.dto';
 import { comparePassword } from '../../../shared/utils/auth.utils';
 import { UsersService } from 'src/modules/users/services/users.service';
+import { UserResponseDto } from 'src/modules/users/dtos/responses/user-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,9 +16,9 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<TokenResponseDto> {
+  async register(registerDto: RegisterDto): Promise<UserResponseDto> {
     const user = await this.usersService.create(registerDto);
-    return this.generateTokenResponse(user);
+    return new UserResponseDto(user);
   }
 
   async login(loginDto: LoginDto): Promise<TokenResponseDto> {

@@ -19,7 +19,7 @@ export class UserResponseDto {
   @Expose()
   role: string;
 
-  @Expose()
+  @Exclude()
   document?: string | null;
 
   @Expose()

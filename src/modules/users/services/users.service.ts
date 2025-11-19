@@ -2,9 +2,11 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { UsersRepository } from '../repositories/users.repository';
 import { CreateUserDto } from '../dtos/requests/create-user.dto';
 import { UserResponseDto } from '../dtos/responses/user-response.dto';
+import { UserPublicDto } from '../dtos/responses/user-public.dto';
 import { UpdateUserDto } from '../dtos/requests/update-user.dto';
 import { hashPassword } from 'src/shared/utils/auth.utils';
 import { PaginationParams } from 'src/shared/interfaces/pagination.interface';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -12,14 +14,10 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     const existingUser = await this.usersRepository.findByEmail(createUserDto.email);
-    if (existingUser) {
-      throw new ConflictException('El email ya está registrado');
-    }
+    if (existingUser) throw new ConflictException('El email ya está registrado');
 
     const existingPhone = await this.usersRepository.findByPhone(createUserDto.phone);
-    if (existingPhone) {
-      throw new ConflictException('El teléfono ya está registrado');
-    }
+    if (existingPhone) throw new ConflictException('El teléfono ya está registrado');
 
     const hashedPassword = await hashPassword(createUserDto.password);
 
@@ -33,10 +31,14 @@ export class UsersService {
 
   async findById(id: number): Promise<UserResponseDto> {
     const user = await this.usersRepository.findById(id);
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
+    if (!user) throw new NotFoundException('Usuario no encontrado');
     return new UserResponseDto(user);
+  }
+
+  async findPublicById(id: number): Promise<UserPublicDto> {
+    const user = await this.usersRepository.findById(id);
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return plainToInstance(UserPublicDto, user, { excludeExtraneousValues: true });
   }
 
   async findByEmail(email: string): Promise<UserResponseDto | null> {
@@ -44,11 +46,12 @@ export class UsersService {
     return user ? new UserResponseDto(user) : null;
   }
 
-  async findAll(pagination: PaginationParams & { search?: string }) {
+  async findAllPublic(pagination: PaginationParams & { search?: string }) {
     const result = await this.usersRepository.findAll(pagination);
+    const users = plainToInstance(UserPublicDto, result.users, { excludeExtraneousValues: true });
 
     return {
-      data: result.users.map(user => new UserResponseDto(user)),
+      users,
       pagination: {
         page: pagination.page,
         limit: pagination.limit,
@@ -62,27 +65,19 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
     const existingUser = await this.usersRepository.findById(id);
-    if (!existingUser) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
+    if (!existingUser) throw new NotFoundException('Usuario no encontrado');
 
     if (updateUserDto.email && updateUserDto.email !== existingUser.email) {
       const emailExists = await this.usersRepository.findByEmail(updateUserDto.email);
-      if (emailExists) {
-        throw new ConflictException('El email ya está en uso por otro usuario');
-      }
+      if (emailExists) throw new ConflictException('El email ya está en uso por otro usuario');
     }
 
     if (updateUserDto.phone && updateUserDto.phone !== existingUser.phone) {
       const phoneExists = await this.usersRepository.findByPhone(updateUserDto.phone);
-      if (phoneExists) {
-        throw new ConflictException('El teléfono ya está en uso por otro usuario');
-      }
+      if (phoneExists) throw new ConflictException('El teléfono ya está en uso por otro usuario');
     }
 
-    if (updateUserDto.password) {
-      updateUserDto.password = await hashPassword(updateUserDto.password);
-    }
+    if (updateUserDto.password) updateUserDto.password = await hashPassword(updateUserDto.password);
 
     const updatedUser = await this.usersRepository.update(id, updateUserDto);
     return new UserResponseDto(updatedUser);
@@ -90,9 +85,7 @@ export class UsersService {
 
   async remove(id: number): Promise<{ message: string }> {
     const user = await this.usersRepository.findById(id);
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
+    if (!user) throw new NotFoundException('Usuario no encontrado');
 
     await this.usersRepository.softDelete(id);
     return { message: 'Usuario eliminado exitosamente' };
@@ -100,9 +93,7 @@ export class UsersService {
 
   async toggleActive(id: number, isActive: boolean): Promise<UserResponseDto> {
     const user = await this.usersRepository.findById(id);
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
+    if (!user) throw new NotFoundException('Usuario no encontrado');
 
     const updatedUser = await this.usersRepository.toggleActive(id, isActive);
     return new UserResponseDto(updatedUser);

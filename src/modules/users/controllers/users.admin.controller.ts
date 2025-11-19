@@ -2,8 +2,15 @@ import { Controller, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestj
 import { UsersService } from '../services/users.service';
 import { CreateUserDto } from '../dtos/requests/create-user.dto';
 import { UpdateUserDto } from '../dtos/requests/update-user.dto';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/shared/constants';
 
 @Controller('admin/users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 export class UsersAdminController {
   constructor(private readonly usersService: UsersService) {}
 

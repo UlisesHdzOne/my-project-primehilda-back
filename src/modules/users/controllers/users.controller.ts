@@ -2,29 +2,33 @@ import { Controller, Get, Put, Body, Param, ParseIntPipe, Query } from '@nestjs/
 import { UsersService } from '../services/users.service';
 import { UpdateUserDto } from '../dtos/requests/update-user.dto';
 import { PaginationParams } from '../../../shared/interfaces/pagination.interface';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { UseGuards } from '@nestjs/common';
+import { UserId } from 'src/common/decorators/user-id.decorator';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get('profile') // Mi perfil
-  getProfile() {
-    return { message: 'Perfil endpoint - agregar autenticación después' };
+  @Get('profile')
+  getProfile(@UserId() userId: number) {
+    return this.usersService.findById(userId);
   }
 
-  @Put('profile') // Actualizar MI perfil
-  updateProfile(@Body() updateUserDto: UpdateUserDto) {
-    return { message: 'Actualizar perfil - agregar autenticación después' };
+  @Put('profile')
+  updateProfile(@UserId() userId: number, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(userId, updateUserDto);
   }
 
-  @Get(':id') // Ver perfil de OTRO usuario (solo info pública)
+  @Get(':id')
   getUser(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findById(id);
+    return this.usersService.findPublicById(id);
   }
 
-  @Get() // Listar usuarios (con paginación)
+  @Get()
   getUsers(@Query() pagination: PaginationParams & { search?: string }) {
-    return this.usersService.findAll({
+    return this.usersService.findAllPublic({
       page: pagination.page || 1,
       limit: pagination.limit || 20,
       search: pagination.search,
