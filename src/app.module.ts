@@ -12,6 +12,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { ProductsModule } from './modules/products/products.module';
 import { GiftRulesModule } from './modules/gift-rules/gift-rules.module';
+import { GiftResolverModule } from './modules/gift-resolver/gift-resolver.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { GiftRulesModule } from './modules/gift-rules/gift-rules.module';
     UsersModule,
     ProductsModule,
     GiftRulesModule,
+    GiftResolverModule,
     // OrdersModule,
     // etc...
   ],
