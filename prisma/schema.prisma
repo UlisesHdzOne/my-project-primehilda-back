@@ -24,4 +24,30 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@map("users")
+  addresses Address[]
+}
+
+model Address {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  title       String   // "Casa", "Trabajo", "Oficina", etc.
+  address     String   // Dirección completa
+  city        String
+  state       String
+  zipCode     String
+  country     String   @default("México")
+  notes       String?  // "Casa blanca portón negro"
+  isDefault   Boolean  @default(false)
+  latitude    Float?   // Para geolocalización
+  longitude   Float?   // Para geolocalización
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("addresses")
+  @@index([userId])
 }
