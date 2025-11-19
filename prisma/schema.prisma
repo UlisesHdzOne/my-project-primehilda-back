@@ -64,5 +64,29 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+ // Relación inversa con GiftRule
+  giftRule    GiftRule? @relation("ProductAsPrincipal")
+  
   @@map("products")
+}
+
+model GiftRule {
+  id                  Int      @id @default(autoincrement())
+
+  // Producto principal (el que otorga los obsequios)
+  principalProductId  Int
+  principalProduct    Product  @relation("ProductAsPrincipal", fields: [principalProductId], references: [id], onDelete: Cascade)
+
+  // Configuración de obsequios
+  allowedGiftIds      Int[]    // IDs de productos que pueden ser regalos
+  maxFreeQuantity     Int
+  isActive            Boolean  @default(true)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("gift_rules")
+  @@unique([principalProductId])
+  @@index([principalProductId])
+  @@index([isActive])
 }
