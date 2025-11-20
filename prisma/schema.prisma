@@ -25,6 +25,7 @@ model User {
 
   @@map("users")
   addresses Address[]
+  carts     Cart[]
 }
 
 model Address {
@@ -66,6 +67,7 @@ model Product {
 
  // Relación inversa con GiftRule
   giftRule    GiftRule? @relation("ProductAsPrincipal")
+  cartItems   CartItem[]
   
   @@map("products")
 }
@@ -89,4 +91,43 @@ model GiftRule {
   @@unique([principalProductId])
   @@index([principalProductId])
   @@index([isActive])
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  sessionId String?  // Para usuarios no logueados
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int
+  productId Int
+  quantity  Int     @default(1)
+  
+  // Para obsequios
+  isGift    Boolean @default(false)
+  giftFromProductId Int?  // Producto principal que dio este obsequio
+  createdAt DateTime @default(now())
+
+  // Relations
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("cart_items")
+  @@unique([cartId, productId, isGift, giftFromProductId])
+  @@index([cartId])
+  @@index([productId])
 }

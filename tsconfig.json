@@ -24,7 +24,19 @@
 
     "strict": false,
     "useDefineForClassFields": false,
-    "exactOptionalPropertyTypes": false
+    "exactOptionalPropertyTypes": false,
+
+    "paths": {
+      "@/*": ["src/*"],
+      "@common/*": ["src/common/*"],
+      "@shared/*": ["src/shared/*"],
+      "@modules/*": ["src/modules/*"],
+      "@config/*": ["src/config/*"],
+      "@database/*": ["src/database/*"]
+    },
+
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts", "**/*.test.ts"]
 }

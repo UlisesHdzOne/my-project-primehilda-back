@@ -13,6 +13,7 @@ import { AddressesModule } from './modules/addresses/addresses.module';
 import { ProductsModule } from './modules/products/products.module';
 import { GiftRulesModule } from './modules/gift-rules/gift-rules.module';
 import { GiftResolverModule } from './modules/gift-resolver/gift-resolver.module';
+import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { GiftResolverModule } from './modules/gift-resolver/gift-resolver.module
     ProductsModule,
     GiftRulesModule,
     GiftResolverModule,
+    CartModule,
     // OrdersModule,
     // etc...
   ],
