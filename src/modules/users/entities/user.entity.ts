@@ -2,11 +2,12 @@ export class UserEntity {
   id: number;
   name: string;
   lastName: string;
-  email: string;
+  email?: string;
+  password?: string;
   phone: string;
   role: string;
-  document?: string | null;
-  notes?: string | null;
+  document?: string;
+  notes?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

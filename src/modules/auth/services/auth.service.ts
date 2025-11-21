@@ -22,7 +22,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<TokenResponseDto> {
-    const user = await this.usersService.findByEmail(loginDto.email);
+    const user = await this.usersService.findByPhone(loginDto.phone);
 
     if (!user) {
       throw new UnauthorizedException('Credenciales inválidas');
@@ -40,8 +40,8 @@ export class AuthService {
     return this.generateTokenResponse(user);
   }
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+  async validateUser(phone: string, password: string): Promise<any> {
+    const user = await this.usersService.findByPhone(phone);
 
     if (user && (await comparePassword(password, user.password))) {
       // ✅ CORREGIDO: usar _ para variables no utilizadas
@@ -56,6 +56,7 @@ export class AuthService {
   private generateTokenResponse(user: any): TokenResponseDto {
     const payload = {
       id: user.id,
+      phone: user.phone,
       email: user.email,
       name: user.name,
       role: user.role,
@@ -70,6 +71,7 @@ export class AuthService {
       expiresIn,
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         name: user.name,
         role: user.role,

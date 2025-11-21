@@ -10,7 +10,8 @@ export class TokenResponseDto {
   @Expose()
   user: {
     id: number;
-    email: string;
+    phone: string;
+    email?: string;
     name: string;
     role: string;
   };

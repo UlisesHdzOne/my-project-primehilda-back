@@ -3,7 +3,8 @@ import { Role } from '../constants/role.enum';
 
 interface JwtPayload {
   id: number;
-  email: string;
+  phone: string;
+  email?: string;
   name: string;
   role: Role;
 }

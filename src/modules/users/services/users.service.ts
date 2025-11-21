@@ -13,7 +13,7 @@ export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    const existingUser = await this.usersRepository.findByEmail(createUserDto.email);
+    const existingUser = await this.usersRepository.findByEmail(createUserDto.phone);
     if (existingUser) throw new ConflictException('El email ya está registrado');
 
     const existingPhone = await this.usersRepository.findByPhone(createUserDto.phone);
@@ -43,6 +43,11 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<UserResponseDto | null> {
     const user = await this.usersRepository.findByEmail(email);
+    return user ? new UserResponseDto(user) : null;
+  }
+
+  async findByPhone(phone: string): Promise<UserResponseDto | null> {
+    const user = await this.usersRepository.findByPhone(phone);
     return user ? new UserResponseDto(user) : null;
   }
 

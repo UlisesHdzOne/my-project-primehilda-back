@@ -20,7 +20,7 @@ export class UserResponseDto {
   role: string;
 
   @Exclude()
-  document?: string | null;
+  document?: string;
 
   @Expose()
   isActive: boolean;
@@ -35,7 +35,7 @@ export class UserResponseDto {
   password: string;
 
   @Exclude()
-  notes?: string | null;
+  notes?: string;
 
   constructor(partial: Partial<UserResponseDto>) {
     Object.assign(this, partial);

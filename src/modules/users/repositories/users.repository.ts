@@ -6,36 +6,68 @@ import { PaginationParams } from '../../../shared/interfaces/pagination.interfac
 import { Prisma } from '@prisma/client';
 import { UpdateUserDto } from '../dtos/requests/update-user.dto';
 
+interface PrismaUser {
+  id: number;
+  name: string;
+  lastName: string;
+  email: string | null;
+  password: string;
+  phone: string;
+  role: string;
+  document: string | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private toUserEntity(user: PrismaUser): UserEntity {
+    return new UserEntity({
+      id: user.id,
+      name: user.name,
+      lastName: user.lastName,
+      email: user.email || undefined,
+      password: user.password,
+      phone: user.phone,
+      role: user.role,
+      document: user.document || undefined,
+      notes: user.notes || undefined,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+  }
 
   async create(createUserDto: CreateUserDto & { password: string }): Promise<UserEntity> {
     const user = await this.prisma.user.create({
       data: createUserDto,
     });
-    return new UserEntity(user);
+    return this.toUserEntity(user as PrismaUser);
   }
 
   async findById(id: number): Promise<UserEntity | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
-    return user ? new UserEntity(user) : null;
+    return user ? this.toUserEntity(user as PrismaUser) : null;
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
-    return user ? new UserEntity(user) : null;
+    return user ? this.toUserEntity(user as PrismaUser) : null;
   }
 
   async findByPhone(phone: string): Promise<UserEntity | null> {
     const user = await this.prisma.user.findUnique({
       where: { phone },
     });
-    return user ? new UserEntity(user) : null;
+    return user ? this.toUserEntity(user as PrismaUser) : null;
   }
 
   async findAll(pagination: PaginationParams & { search?: string }): Promise<{
@@ -66,7 +98,7 @@ export class UsersRepository {
     ]);
 
     return {
-      users: users.map(user => new UserEntity(user)),
+      users: users.map(user => this.toUserEntity(user as PrismaUser)),
       total,
     };
   }
@@ -76,7 +108,7 @@ export class UsersRepository {
       where: { id },
       data: updateUserDto,
     });
-    return new UserEntity(user);
+    return this.toUserEntity(user as PrismaUser);
   }
 
   async softDelete(id: number): Promise<UserEntity> {
@@ -84,7 +116,7 @@ export class UsersRepository {
       where: { id },
       data: { isActive: false },
     });
-    return new UserEntity(user);
+    return this.toUserEntity(user as PrismaUser);
   }
 
   async toggleActive(id: number, isActive: boolean): Promise<UserEntity> {
@@ -92,6 +124,6 @@ export class UsersRepository {
       where: { id },
       data: { isActive },
     });
-    return new UserEntity(user);
+    return this.toUserEntity(user as PrismaUser);
   }
 }
