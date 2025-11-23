@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import configuration from './config/configuration';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { StudentModule } from './modules/student/student.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AppService } from './app.service';
 
     // ✅ Database module global
     DatabaseModule,
+    StudentModule,
 
     // ✅ Aquí irán tus otros módulos después:
     // AuthModule,

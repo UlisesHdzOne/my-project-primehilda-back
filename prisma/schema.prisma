@@ -7,21 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Student {
+  id        Int           @id @default(autoincrement())
+  name      String
+  age       Int
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  courses   StudentCourse[]
+}
+
+model Teacher {
   id        Int      @id @default(autoincrement())
   name      String
-  lastName  String   @default("modificar apellido")
-  email     String   @unique
-  password  String
-  phone     String   @unique
-  role      String   @default("CONSUMER")
-
-  document  String?  @unique
-  notes     String?
-  isActive  Boolean  @default(true)
-
+  age       Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("users")
+  courses   Course[]
+}
+
+model Course {
+  id          Int           @id @default(autoincrement())
+  courseName  String
+  grade       Int
+  group       String
+  teacherId   Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  teacher     Teacher       @relation(fields: [teacherId], references: [id])
+  students    StudentCourse[]
+}
+
+model StudentCourse {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  courseId   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student    Student   @relation(fields: [studentId], references: [id])
+  course     Course    @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId])
 }
