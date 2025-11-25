@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { StudentRepository } from '../repository/student.repository';
 import { CreateStudentDto } from '../dto/create-student.dto';
 import { UpdateStudentDto } from '../dto/update-student.dto';
 import { StudentResponseDto } from '../dto/response/student-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class StudentService {
@@ -11,37 +12,25 @@ export class StudentService {
   // crear estudiante
   async create(data: CreateStudentDto): Promise<StudentResponseDto> {
     const student = await this.studentRepository.create(data);
+    const dto = plainToInstance(StudentResponseDto, student);
+    console.log(dto.age);
+    if (dto.age < 18) throw new BadRequestException('Estudiante debe ser mayor de 18');
+    if (data.age < 18) throw new BadRequestException('Estudiante debe ser mayor de 18');
 
-    return {
-      id: student.id,
-      name: student.name,
-      createdAt: student.createdAt,
-      updatedAt: student.updatedAt,
-    };
+    return dto;
   }
 
   // obtener todos
   async findAll(): Promise<StudentResponseDto[]> {
     const students = await this.studentRepository.findAll();
-
-    return students.map(s => ({
-      id: s.id,
-      name: s.name,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-    }));
+    return plainToInstance(StudentResponseDto, students);
   }
 
   // obtener uno por id
   async findOne(id: number): Promise<StudentResponseDto> {
     const student = await this.studentRepository.findOne(id);
     if (!student) throw new NotFoundException('Estudiante no encontrado');
-    return {
-      id: student.id,
-      name: student.name,
-      createdAt: student.createdAt,
-      updatedAt: student.updatedAt,
-    };
+    return plainToInstance(StudentResponseDto, student);
   }
 
   // actualizar estudiante
@@ -50,12 +39,7 @@ export class StudentService {
     if (!exists) throw new NotFoundException('Estudiante no encontrado');
 
     const student = await this.studentRepository.update(id, data);
-    return {
-      id: student.id,
-      name: student.name,
-      createdAt: student.createdAt,
-      updatedAt: student.updatedAt,
-    };
+    return plainToInstance(StudentResponseDto, student);
   }
 
   // eliminar estudiante
@@ -64,12 +48,7 @@ export class StudentService {
     if (!exists) throw new NotFoundException('Estudiante no encontrado');
 
     const student = await this.studentRepository.remove(id);
-    return {
-      id: student.id,
-      name: student.name,
-      createdAt: student.createdAt,
-      updatedAt: student.updatedAt,
-    };
+    return plainToInstance(StudentResponseDto, student);
   }
 
   // buscar por nombre
@@ -91,7 +70,7 @@ export class StudentService {
   async findWithCourses(id: number) {
     const student = await this.studentRepository.findWithCourses(id);
     if (!student) throw new NotFoundException('Estudiante no encontrado');
-    return student;
+    return plainToInstance(StudentResponseDto, student);
   }
 
   // validar si un estudiante ya está inscrito a un curso

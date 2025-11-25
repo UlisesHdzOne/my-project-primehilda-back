@@ -2,7 +2,7 @@ import { PrismaService } from '@/database/prisma.service';
 import { Student } from '@prisma/client';
 import { CreateStudentDto } from '../dto/create-student.dto';
 import { UpdateStudentDto } from '../dto/update-student.dto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class StudentRepository {
@@ -30,8 +30,15 @@ export class StudentRepository {
   }
 
   // elimina un registro
-  remove(id: number): Promise<Student> {
-    return this.prisma.student.delete({ where: { id } });
+  async remove(id: number): Promise<Student> {
+    try {
+      return await this.prisma.student.delete({ where: { id } });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`Estudiante con ID ${id} no encontrado`);
+      }
+      throw error;
+    }
   }
 
   // --- CONSULTAS ADICIONALES ---

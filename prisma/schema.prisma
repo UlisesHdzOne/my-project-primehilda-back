@@ -11,6 +11,7 @@ model Student {
   id        Int           @id @default(autoincrement())
   name      String
   age       Int
+  deletedAt DateTime?      
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
