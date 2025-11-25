@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DatabaseModule } from './database/database.module';
@@ -12,6 +12,8 @@ import { SalasModule } from './modules/salas/salas.module';
 import { ReservaModule } from './modules/reservas/reservas.module';
 import { AuthService } from './modules/auth/service/auth.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -20,6 +22,11 @@ import { AuthModule } from './modules/auth/auth.module';
       isGlobal: true,
       load: [configuration],
       envFilePath: '.env',
+    }),
+
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'fallback-secret-key',
+      signOptions: { expiresIn: '1h' },
     }),
 
     // ✅ Database module global
@@ -55,10 +62,10 @@ import { AuthModule } from './modules/auth/auth.module';
     },
 
     // ✅ Global Guard (OPCIONAL - descomenta cuando tengas AuthModule)
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtAuthGuard,
-    // },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}

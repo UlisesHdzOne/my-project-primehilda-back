@@ -40,10 +40,14 @@ export class AuthService {
 
     if (!isMatch) throw new UnauthorizedException('Invalid credentials');
 
-    const payload = { sub: user.id };
-    const token = this.jwtService.sign(payload);
+    // ✅ MEJORAR payload con más información útil
+    const payload = {
+      sub: user.id,
+      phone: user.phone,
+      name: user.name,
+    };
 
-    // Convertimos a DTO para no exponer la contraseña
+    const token = this.jwtService.sign(payload);
     const safeUser = plainToInstance(UserResponseDto, user);
 
     return { accessToken: token, user: safeUser };
