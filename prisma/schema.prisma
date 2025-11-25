@@ -10,18 +10,39 @@ datasource db {
 model User {
   id        Int      @id @default(autoincrement())
   name      String
-  lastName  String   @default("modificar apellido")
-  email     String   @unique
-  password  String
   phone     String   @unique
-  role      String   @default("CONSUMER")
-
-  document  String?  @unique
-  notes     String?
-  isActive  Boolean  @default(true)
-
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("users")
+  // Relación: 1 Usuario → N Reservas
+  reservas Reserva[]
+}
+
+model Sala{
+  id        Int      @id @default(autoincrement())
+  name      String
+  capacity Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+   // Relación: 1 Sala → N Reservas
+  reservas  Reserva[]
+}
+
+model Reserva{
+  id        Int      @id @default(autoincrement())
+  fecha     DateTime
+  horaInicio String
+  horaFin   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+   // FK hacia User
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+
+  // FK hacia Sala
+  salaId     Int
+  sala       Sala      @relation(fields: [salaId], references: [id])
 }

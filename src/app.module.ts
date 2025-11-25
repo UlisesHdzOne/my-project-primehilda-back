@@ -7,6 +7,11 @@ import { DatabaseModule } from './database/database.module';
 import configuration from './config/configuration';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { UsersModule } from './modules/users/users.module';
+import { SalasModule } from './modules/salas/salas.module';
+import { ReservaModule } from './modules/reservas/reservas.module';
+import { AuthService } from './modules/auth/service/auth.service';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -19,6 +24,14 @@ import { AppService } from './app.service';
 
     // ✅ Database module global
     DatabaseModule,
+
+    UsersModule,
+
+    SalasModule,
+
+    ReservaModule,
+
+    AuthModule,
 
     // ✅ Aquí irán tus otros módulos después:
     // AuthModule,
@@ -40,6 +53,7 @@ import { AppService } from './app.service';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
+
     // ✅ Global Guard (OPCIONAL - descomenta cuando tengas AuthModule)
     // {
     //   provide: APP_GUARD,
