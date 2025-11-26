@@ -1,19 +1,18 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { Public } from './common/guards/jwt-auth.guard';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @Public()
+  
   getHello(): { message: string } {
     return { message: this.appService.getHello() };
   }
 
   @Get('health')
-  @Public()
+  
   getHealth() {
     return {
       status: 'ok',
@@ -24,7 +23,7 @@ export class AppController {
   }
 
   @Get('test')
-  @Public()
+  
   getTestData() {
     return {
       users: [

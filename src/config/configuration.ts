@@ -15,16 +15,6 @@ export default registerAs('app', () => ({
     expiresIn: process.env.JWT_EXPIRES_IN || '1h',
   },
 
-  // Business Rules
-  business: {
-    minEventTotal: 1000,
-    maxDeliveryDistance: 5,
-    businessCoordinates: {
-      lat: 16.70186,
-      lon: -93.00942,
-    },
-  },
-
   // CORS
   frontendUrl: process.env.FRONTEND_URL,
 }));

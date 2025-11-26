@@ -2,14 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // Global pipes
+  // ✅ SOLO ValidationPipe (lo esencial)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -27,24 +25,22 @@ async function bootstrap() {
     }),
   );
 
-  // Global filters & interceptors
-  app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new ResponseInterceptor());
-
-  // CORS
+  // ✅ CORS básico
   app.enableCors({
-    origin: configService.get('FRONTEND_URL'),
+    origin: configService.get('app.frontendUrl'),
     credentials: true,
   });
 
-  const port = configService.get('PORT') || 3000;
+  // ✅ Puerto
+  const port = configService.get<number>('app.port') || 3000;
+
   await app.listen(port);
 
   console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 
-// Manejo seguro de la promesa
 bootstrap().catch(error => {
-  console.error('Error during bootstrap:', error);
+  console.error('❌ Error during bootstrap:', error);
   process.exit(1);
 });
