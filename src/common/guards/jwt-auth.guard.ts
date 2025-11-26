@@ -11,10 +11,7 @@ import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 
-// Clave para metadata de endpoints públicos
 export const IS_PUBLIC_KEY = 'isPublic';
-
-// Decorador para endpoints públicos
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 @Injectable()
@@ -28,7 +25,6 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Verificar si el endpoint es público
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -48,10 +44,9 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('jwt.secret'),
+        secret: this.configService.get<string>('app.jwt.secret'),
       });
 
-      // Asignar usuario a la request
       request['user'] = payload;
       return true;
     } catch (error) {

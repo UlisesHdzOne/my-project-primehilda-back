@@ -10,10 +10,8 @@ import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { SalasModule } from './modules/salas/salas.module';
 import { ReservaModule } from './modules/reservas/reservas.module';
-import { AuthService } from './modules/auth/service/auth.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -24,28 +22,14 @@ import { JwtModule } from '@nestjs/jwt';
       envFilePath: '.env',
     }),
 
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'fallback-secret-key',
-      signOptions: { expiresIn: '1h' },
-    }),
-
     // ✅ Database module global
     DatabaseModule,
 
-    UsersModule,
-
-    SalasModule,
-
-    ReservaModule,
-
+    // ✅ Tus módulos de funcionalidad
     AuthModule,
-
-    // ✅ Aquí irán tus otros módulos después:
-    // AuthModule,
-    // UsersModule,
-    // ProductsModule,
-    // OrdersModule,
-    // etc...
+    UsersModule,
+    SalasModule,
+    ReservaModule,
   ],
   controllers: [AppController],
   providers: [
@@ -60,8 +44,7 @@ import { JwtModule } from '@nestjs/jwt';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
-
-    // ✅ Global Guard (OPCIONAL - descomenta cuando tengas AuthModule)
+    // ✅ Global Guard
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
