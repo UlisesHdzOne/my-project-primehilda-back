@@ -2,9 +2,11 @@ import { Request } from 'express';
 import { Role } from '../constants/role.enum';
 
 interface JwtPayload {
-  id: number;
-  email: string;
+  sub: number;
+  phone: string;
+  name: string;
   role: Role;
+  iat: number;
 }
 
 declare global {
