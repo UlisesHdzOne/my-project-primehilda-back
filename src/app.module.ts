@@ -4,6 +4,8 @@ import { DatabaseModule } from './database/database.module';
 import configuration from './config/configuration';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -15,6 +17,9 @@ import { AppService } from './app.service';
     DatabaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService,{
+    provide: APP_INTERCEPTOR,
+    useClass: ResponseInterceptor,
+  }],
 })
 export class AppModule {}
