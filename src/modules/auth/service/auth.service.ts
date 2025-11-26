@@ -45,6 +45,7 @@ export class AuthService {
       sub: user.id,
       phone: user.phone,
       name: user.name,
+      iat: Math.floor(Date.now() / 1000),
     };
 
     const token = this.jwtService.sign(payload);
