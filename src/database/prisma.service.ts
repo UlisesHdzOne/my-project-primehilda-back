@@ -18,12 +18,25 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async cleanDatabase() {
-    if (process.env.NODE_ENV === 'production') return;
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('Database cleaning skipped in production');
+      return;
+    }
 
-    const models = Reflect.ownKeys(this).filter(
-      key => key[0] !== '_' && key[0] !== '$' && typeof this[key]?.deleteMany === 'function',
-    );
+    // Lista EXPLÍCITA de todos tus modelos en el orden correcto
+    // (primero las tablas que dependen de otras, luego las independientes)
+    const modelsToDelete = [
+      // Agrega aquí TODOS tus modelos en orden inverso de dependencias
+      // Ejemplo:
+      // this.orderItem.deleteMany(), // depende de order y product
+      // this.order.deleteMany(),     // depende de user
+      // this.product.deleteMany(),   // depende de category  
+      // this.category.deleteMany(),
+      this.user.deleteMany(),
+    ];
 
-    return Promise.all(models.map(modelKey => this[modelKey].deleteMany()));
+    if (modelsToDelete.length > 0) {
+      await this.$transaction(modelsToDelete);
+    }
   }
 }

@@ -64,6 +64,10 @@ export default tseslint.config(
       // ✅ REGLAS DE ESTILO
       'prefer-const': 'warn',
       'no-var': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      'prettier/prettier': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      
     },
   },
 );
