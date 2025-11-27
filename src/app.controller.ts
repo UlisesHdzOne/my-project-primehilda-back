@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { AppService } from './app.service';
+import { PrismaService } from './database/prisma.service';
 
 @Controller()
 export class AppController {
@@ -11,18 +12,28 @@ export class AppController {
   }
 
   @Get('health')
+async getHealth(@Inject(PrismaService) prisma: PrismaService) {
+  let databaseStatus = 'unknown';
   
-  getHealth() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      port: process.env.PORT,
-    };
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    databaseStatus = 'connected';
+  } catch {
+    // ✅ Sin parámetro error si no lo usas
+    databaseStatus = 'disconnected';
   }
 
+  return {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || '3000',
+    database: databaseStatus,
+    uptime: process.uptime(),
+  };
+}
+
   @Get('test')
-  
   getTestData() {
     return {
       users: [
