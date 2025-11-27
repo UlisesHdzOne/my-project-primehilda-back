@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { IUserRepository } from './user-repository.interface';
-import { User, Role } from '@prisma/client';
+import { CreateUserData, IUserRepository } from './user-repository.interface';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
@@ -19,14 +19,16 @@ export class PrismaUserRepository implements IUserRepository {
     });
   }
 
-  async create(userData: { 
-    name: string; 
-    phone: string; 
-    password: string; 
-    role?: Role;
-  }): Promise<User> {
-    return this.prisma.user.create({
-      data: userData,
-    });
+  async create(userData: CreateUserData): Promise<User> {
+    try {
+      return this.prisma.user.create({
+        data: userData,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('El telefono ya esta registrado');
+      }
+      throw error;
+    }
   }
 }
