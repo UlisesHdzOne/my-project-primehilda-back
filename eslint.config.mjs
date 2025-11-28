@@ -20,7 +20,6 @@ export default tseslint.config(
       prettier: prettierPlugin,
     },
     rules: {
-      // ✅ CONFIGURACIÓN PRETTIER CORREGIDA
       'prettier/prettier': [
         'warn',
         {
@@ -36,6 +35,17 @@ export default tseslint.config(
           bracketSameLine: false,
         },
       ],
+
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/consistent-type-imports': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+
+      'prefer-const': 'warn',
+      'no-var': 'error',
     },
   },
   {
@@ -49,25 +59,6 @@ export default tseslint.config(
         project: './tsconfig.json',
         tsconfigRootDir: __dirname,
       },
-    },
-  },
-  {
-    rules: {
-      // ✅ REGLAS TYPESCRIPT FLEXIBLES
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-
-      // ✅ REGLAS DE ESTILO
-      'prefer-const': 'warn',
-      'no-var': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      'prettier/prettier': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      
     },
   },
 );

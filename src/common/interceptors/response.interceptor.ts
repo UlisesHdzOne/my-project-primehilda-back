@@ -6,19 +6,36 @@ export interface Response<T> {
   success: boolean;
   data: T;
   timestamp: string;
+  metadata?: {
+    path: string;
+    method: string;
+  };
 }
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(context: ExecutionContext, next: CallHandler<T>): Observable<Response<T>> {
+    const request = context.switchToHttp().getRequest();
     const now = new Date().toISOString();
 
     return next.handle().pipe(
-      map(data => ({
-        success: true,
-        data,
-        timestamp: now,
-      })),
+      map(data => {
+        const baseResponse: Response<T> = {
+          success: true,
+          data,
+          timestamp: now,
+        };
+
+        // 📍 Agregar metadata básica en desarrollo
+        if (process.env.NODE_ENV === 'development') {
+          baseResponse.metadata = {
+            path: request.url,
+            method: request.method,
+          };
+        }
+
+        return baseResponse;
+      }),
     );
   }
 }

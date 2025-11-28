@@ -19,14 +19,10 @@ export class AuthService {
   async register(
     registerDto: CreateUserByPublicDto,
   ): Promise<{ access_token: string; user: UserResponseDto }> {
-    const { name, phone, password } = registerDto;
+    
 
     // Crear usuario usando el DTO de creación
-    const user = await this.usersService.createUserPublic({
-      name,
-      phone,
-      password,
-    });
+    const user = await this.usersService.createUserPublic(registerDto);
 
     // Generar token JWT
     const payload = { sub: user.id, phone: user.phone, role: user.role };

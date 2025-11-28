@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Post,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -15,9 +16,9 @@ import { Role } from '@prisma/client';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { RequestUser } from '@/common/interfaces/request-user.interface';
 import { User } from '@/common/decorators/user.decorator';
-
+import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+@UseInterceptors(ResponseInterceptor)
 @Controller('users')
 //@UseGuards(JwtAuthGuard, RolesGuard) // ← Proteger todo el controller
 export class UsersController {
@@ -29,10 +30,9 @@ export class UsersController {
   @Roles(Role.ADMIN) // ← Solo administradores
   @UsePipes(new ValidationPipe())
   async createByAdmin(
-    @User() user: RequestUser, // ← Request tipado de Express
     @Body() createUserDto: CreateUserByAdminDto,
   ) {
-    const newUser = await this.usersService.createUserByAdmin(user.id, createUserDto);
+    const newUser = await this.usersService.createUserByAdmin(createUserDto);
 
     return {
       user: newUser,
