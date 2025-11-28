@@ -32,15 +32,19 @@ export class UsersController {
     @User() user: RequestUser, // ← Request tipado de Express
     @Body() createUserDto: CreateUserByAdminDto,
   ) {
-    const newUser = await this.usersService.createUserByAdmin(
-      user.id,
-      createUserDto,
-    );
+    const newUser = await this.usersService.createUserByAdmin(user.id, createUserDto);
 
     return {
       user: newUser,
       message: 'Usuario creado exitosamente por administrador',
     };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard) // Solo usuarios autenticados
+  async getMe(@User('id') userId: number) {
+    const user = await this.usersService.findById(userId);
+    return { user };
   }
 
   @Get(':id')
