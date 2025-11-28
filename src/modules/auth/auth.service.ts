@@ -1,18 +1,19 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { UsersService } from '../users/users.service';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserByPublicDto } from '../users/dto/create-user-by-public.dto';
 import { RequestUser } from '@/common/interfaces/request-user.interface';
+import { PasswordService } from '@/common/services/password.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private passwordService: PasswordService, // ← Inyectar
   ) {}
 
   async register(
@@ -41,14 +42,10 @@ export class AuthService {
     const { phone, password } = loginDto;
 
     const user = await this.usersService.findWithPassword(phone);
-    if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
+    if (!user) throw new UnauthorizedException('Credenciales inválidas');
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
+    const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
+    if (!isPasswordValid) throw new UnauthorizedException('Credenciales inválidas');
 
     // ✅ Optimización: No buscar de nuevo el usuario
     const userResponse = plainToInstance(UserResponseDto, user);

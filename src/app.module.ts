@@ -8,6 +8,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -17,13 +18,17 @@ import { AuthModule } from './modules/auth/auth.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    CommonModule,
     UsersModule,
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService,{
-    provide: APP_INTERCEPTOR,
-    useClass: ResponseInterceptor,
-  }],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule {}
