@@ -33,18 +33,19 @@ export class UsersService {
   async createUserByAdmin(createUserDto: CreateUserByAdminDto): Promise<UserResponseDto> {
     await this.verifyUserNotExists(createUserDto.phone);
 
-    const hashedPassword = await this.processPassword(createUserDto.password);
+    const { plain, hash } = await this.processPassword(createUserDto.password);
+
     const user = await this.userRepository.create({
       name: createUserDto.name,
       phone: createUserDto.phone,
-      password: hashedPassword,
+      password: hash,
       role: createUserDto.role || Role.CONSUMER,
       isActive: createUserDto.isActive ?? true,
     });
 
     // Notificar si no se proporcionó contraseña
     if (!createUserDto.password) {
-      await this.notifyUserWithPassword(createUserDto.phone, hashedPassword);
+      await this.notifyUserWithPassword(createUserDto.phone, plain);
     }
 
     return plainToInstance(UserResponseDto, user);
@@ -54,11 +55,11 @@ export class UsersService {
   async createUserPublic(createUserData: CreateUserByPublicDto): Promise<UserResponseDto> {
     await this.verifyUserNotExists(createUserData.phone);
 
-    const hashedPassword = await this.processPassword(createUserData.password);
+    const { hash } = await this.processPassword(createUserData.password);
     const user = await this.userRepository.create({
       name: createUserData.name,
       phone: createUserData.phone,
-      password: hashedPassword,
+      password: hash,
       role: Role.CONSUMER,
       isActive: true,
     });
@@ -87,9 +88,11 @@ export class UsersService {
     }
   }
 
-  private async processPassword(password?: string): Promise<string> {
-    const finalPassword = password || this.passwordService.generateRandomPassword(12);
-    return this.passwordService.hashPassword(finalPassword);
+  private async processPassword(password?: string) {
+    const plain = password || this.passwordService.generateRandomPassword(12);
+    const hash = await this.passwordService.hashPassword(plain);
+
+    return { plain, hash };
   }
 
   private async notifyUserWithPassword(phone: string, password: string): Promise<void> {
