@@ -22,23 +22,4 @@ export class ProfileService {
   async updateMyCompleteProfile(userId: number, data: UpdateCompleteProfileDto) {
     return this.profileRepository.updateUserWithProfile(userId, data);
   }
-
-  // // ✅ADMIN
-  // async getUserProfile(userId: number) {
-  //   const profile = await this.profileRepository.findByUserId(userId);
-  //   if (!profile) {
-  //     throw new NotFoundException('Perfil de usuario no encontrado');
-  //   }
-  //   return profile;
-  // }
-
-  // async updateUserProfile(userId: number, data: UpdateProfileDto) {
-  //   // Verificar que el usuario existe antes de actualizar
-  //   const existingProfile = await this.profileRepository.findByUserId(userId);
-  //   if (!existingProfile) {
-  //     throw new NotFoundException('Usuario no encontrado');
-  //   }
-
-  //   return this.profileRepository.upsert(userId, data);
-  // }
 }
