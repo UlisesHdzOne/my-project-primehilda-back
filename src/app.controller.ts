@@ -1,39 +1,46 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
 import { PrismaService } from './database/prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 @Controller()
 export class AppController {
   constructor(
-    private readonly appService: AppService,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get()
   getHello(): { message: string } {
-    return { message: this.appService.getHello() };
+    return { message: 'Hello World!' };
   }
 
   @Get('health')
   async getHealth() {
-    let databaseStatus = 'unknown';
+    let dbStatus = 'unknown';
 
     try {
-      await this.prismaService.$queryRaw`SELECT 1`; // ← usar la instancia inyectada
-      databaseStatus = 'connected';
+      await this.prismaService.$queryRaw`SELECT 1`;
+      dbStatus = 'healthy';
     } catch {
-      databaseStatus = 'disconnected';
+      dbStatus = 'unhealthy';
     }
 
+    const memory = this.getMemoryUsage();
+
     return {
-      status: 'ok',
+      status: dbStatus === 'healthy' ? 'ok' : 'error',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      port: process.env.PORT || '3000',
-      database: databaseStatus,
-      uptime: process.uptime(),
+      environment: this.configService.get('app.nodeEnv'),
+      port: this.configService.get('app.port'),
+      services: {
+        database: dbStatus,
+      },
+      system: {
+        memory,
+      },
     };
   }
+
   @Get('test')
   getTestData() {
     return {
@@ -44,5 +51,10 @@ export class AppController {
       total: 2,
       message: 'Datos de prueba',
     };
+  }
+
+  private getMemoryUsage() {
+    const { rss, heapUsed, heapTotal } = process.memoryUsage();
+    return { rss, heapUsed, heapTotal };
   }
 }

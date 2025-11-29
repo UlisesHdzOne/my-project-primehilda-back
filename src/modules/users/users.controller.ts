@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
   UsePipes,
@@ -18,51 +19,59 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { User } from '@/common/decorators/user.decorator';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { FindUsersQueryDto } from './dto/find-users-query.dto';
+
 @UseInterceptors(ResponseInterceptor)
 @Controller('users')
-//@UseGuards(JwtAuthGuard, RolesGuard) // ← Proteger todo el controller
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // ✅ ENDPOINT para que admin cree usuarios
+  // -------------------- ENDPOINTS ADMIN --------------------
   @Post('admin/create')
-  @UseGuards(JwtAuthGuard, RolesGuard) // ← Solo este endpoint requiere ambos guards token y role
-  @Roles(Role.ADMIN) // ← Solo administradores
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @UsePipes(new ValidationPipe())
-  async createByAdmin(
-    @Body() createUserDto: CreateUserByAdminDto,
-  ) {
+  async createByAdmin(@Body() createUserDto: CreateUserByAdminDto) {
     const newUser = await this.usersService.createUserByAdmin(createUserDto);
-
     return {
       user: newUser,
       message: 'Usuario creado exitosamente por administrador',
     };
   }
 
+  // -------------------- ENDPOINTS PÚBLICOS / AUTENTICADOS --------------------
+  @Get('health/check')
+  async healthCheck() {
+    return this.usersService.healthCheck();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get() // ← ahora GET /users
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async findUsers(@Query() query: FindUsersQueryDto) {
+    const users = await this.usersService.findUsers(query);
+    return { users };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  @UseGuards(JwtAuthGuard) // Solo usuarios autenticados
   async getMe(@User('id') userId: number) {
     const user = await this.usersService.findById(userId);
     return { user };
   }
 
-  @Get(':id')
-  @UseGuards(JwtAuthGuard) // solo JWT ,Cualquier usuario puede acceder autenticado token
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    const user = await this.usersService.findById(id);
-    return { user };
-  }
-
+  @UseGuards(JwtAuthGuard)
   @Get('phone/:phone')
-  @UseGuards(JwtAuthGuard) // solo JWT ,Cualquier usuario puede acceder autenticado token
   async findByPhone(@Param('phone') phone: string) {
     const user = await this.usersService.findByPhone(phone);
     return { user };
   }
 
-  @Get('health/check') // ← Salud del servicio publico
-  async healthCheck() {
-    return this.usersService.healthCheck();
+  // -------------------- RUTAS DINÁMICAS --------------------
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const user = await this.usersService.findById(id);
+    return { user };
   }
 }

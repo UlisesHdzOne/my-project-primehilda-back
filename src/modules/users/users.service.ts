@@ -6,6 +6,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { CreateUserByPublicDto } from './dto/create-user-by-public.dto';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { PasswordService } from '@/common/services/password.service';
+import { FindUsersQueryDto } from './dto/find-users-query.dto';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +22,20 @@ export class UsersService {
     const user = await this.userRepository.findByPhone(phone);
     if (!user) throw new NotFoundException('Usuario no encontrado');
     return plainToInstance(UserResponseDto, user);
+  }
+
+  async findUsers(params: FindUsersQueryDto): Promise<UserResponseDto[]> {
+    const users = await this.userRepository.findMany({
+      skip: params.skip ?? 0,
+      take: params.take ?? 10,
+      search: params.search,
+      role: params.role,
+      isActive: params.isActive,
+      orderBy: params.orderBy,
+      orderDirection: params.orderDirection,
+    });
+
+    return users.map(u => plainToInstance(UserResponseDto, u));
   }
 
   async findById(id: number): Promise<UserResponseDto> {
