@@ -83,7 +83,7 @@ export class UsersService {
   }
 
   async findWithPassword(phone: string): Promise<User | null> {
-    return this.userRepository.findByPhone(phone);
+    return this.userRepository.findByPhoneWithPassword(phone);
   }
 
   async healthCheck() {

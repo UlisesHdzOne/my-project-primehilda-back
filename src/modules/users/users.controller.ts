@@ -17,7 +17,7 @@ import { Role } from '@prisma/client';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { User } from '@/common/decorators/user.decorator';
+//import { User } from '@/common/decorators/user.decorator';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
 import { FindUsersQueryDto } from './dto/find-users-query.dto';
 
@@ -54,20 +54,13 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('me')
-  async getMe(@User('id') userId: number) {
-    const user = await this.usersService.findById(userId);
-    return { user };
-  }
-
-  @UseGuards(JwtAuthGuard)
   @Get('phone/:phone')
   async findByPhone(@Param('phone') phone: string) {
     const user = await this.usersService.findByPhone(phone);
     return { user };
   }
 
-  // -------------------- RUTAS DINÁMICAS --------------------
+  //-------------------- RUTAS DINÁMICAS --------------------
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {

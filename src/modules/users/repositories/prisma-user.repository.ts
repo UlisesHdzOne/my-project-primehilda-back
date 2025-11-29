@@ -1,36 +1,64 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { CreateUserData, FindManyParams, IUserRepository } from './user-repository.interface';
 import { User } from '@prisma/client';
-import { UserSafe } from './types/user-safe.type';
+import { UserSafe } from '../types/user-safe.type';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findByPhone(phone: string): Promise<User | null> {
+  // ✅ NUEVO MÉTODO - Para LOGIN/AUTH
+  async findByPhoneWithPassword(phone: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { phone },
+      // ← SIN select (trae TODOS los campos, INCLUYENDO password)
     });
   }
 
-  async findById(id: number): Promise<User | null> {
+  async findByPhone(phone: string): Promise<UserSafe | null> {
+    return this.prisma.user.findUnique({
+      where: { phone },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async findById(id: number): Promise<UserSafe | null> {
     return this.prisma.user.findUnique({
       where: { id },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
-  async create(userData: CreateUserData): Promise<User> {
-    try {
-      return this.prisma.user.create({
-        data: userData,
-      });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
-        throw new ConflictException('El telefono ya esta registrado');
-      }
-      throw error;
-    }
+  async create(userData: CreateUserData): Promise<UserSafe> {
+    return this.prisma.user.create({
+      data: userData,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   async findMany(params: FindManyParams): Promise<UserSafe[]> {

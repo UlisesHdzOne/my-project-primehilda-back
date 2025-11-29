@@ -1,10 +1,14 @@
 import type { User, Role } from '@prisma/client';
-import type { UserSafe } from './types/user-safe.type';
+import type { UserSafe } from '../types/user-safe.type';
 
 export interface IUserRepository {
-  findByPhone(phone: string): Promise<User | null>;
-  findById(id: number): Promise<User | null>;
-  create(userData: CreateUserData): Promise<User>;
+  // ✅ NUEVO - Para LOGIN (necesita password)
+  findByPhoneWithPassword(phone: string): Promise<User | null>;
+
+  // ✅ MODIFICADO - Para MOSTRAR usuario (sin password)
+  findByPhone(phone: string): Promise<UserSafe | null>;
+  findById(id: number): Promise<UserSafe | null>;
+  create(userData: CreateUserData): Promise<UserSafe>;
   findMany(params: FindManyParams): Promise<UserSafe[]>;
 }
 

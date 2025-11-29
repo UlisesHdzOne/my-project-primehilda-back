@@ -19,8 +19,6 @@ export class AuthService {
   async register(
     registerDto: CreateUserByPublicDto,
   ): Promise<{ access_token: string; user: UserResponseDto }> {
-    
-
     // Crear usuario usando el DTO de creación
     const user = await this.usersService.createUserPublic(registerDto);
 
@@ -59,8 +57,5 @@ export class AuthService {
       access_token: accessToken,
       user: userResponse,
     };
-  }
-  async validateUser(payload: RequestUser) {
-    return await this.usersService.findById(payload.id);
   }
 }
