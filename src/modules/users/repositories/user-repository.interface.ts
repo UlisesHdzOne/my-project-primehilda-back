@@ -26,6 +26,7 @@ export interface FindManyParams {
   search?: string;
   isActive?: boolean;
   role?: Role;
-  orderBy?: keyof User;
+  //orderBy?: keyof User;
+  orderBy?: string;
   orderDirection?: 'asc' | 'desc';
 }

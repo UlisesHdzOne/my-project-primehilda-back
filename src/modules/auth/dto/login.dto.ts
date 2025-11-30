@@ -1,7 +1,10 @@
-import { IsNotEmpty, IsPhoneNumber, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength, MinLength, Matches } from 'class-validator';
 
 export class LoginDto {
-  @IsPhoneNumber('PE', { message: 'El número de teléfono debe ser válido para Perú' })
+  @IsString({ message: 'El teléfono debe ser texto' })
+  @Matches(/^[0-9+\-\s()]{10,15}$/, {
+    message: 'El teléfono debe tener entre 10 y 15 dígitos y puede incluir +, -, (, ) o espacios',
+  })
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   phone!: string;
 
