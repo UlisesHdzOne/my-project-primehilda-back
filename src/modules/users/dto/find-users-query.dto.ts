@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, Min, IsEnum, IsBoolean, Max, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, IsEnum, IsBoolean, Max, MaxLength, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Role } from '@prisma/client';
 import { UserResponseDto } from './user-response.dto';
@@ -33,9 +33,13 @@ export class FindUsersQueryDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(['id', 'name', 'phone', 'createdAt', 'updatedAt'], {
+    message: 'El campo de ordenamiento no es válido',
+  })
   orderBy?: keyof UserResponseDto = 'createdAt';
 
   @IsOptional()
   @IsString()
+  @IsIn(['asc', 'desc'], { message: 'La dirección de ordenamiento debe ser asc o desc' })
   orderDirection?: 'asc' | 'desc' = 'desc';
 }

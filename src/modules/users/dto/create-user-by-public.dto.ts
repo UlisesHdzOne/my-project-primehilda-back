@@ -17,7 +17,7 @@ export class CreateUserByPublicDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   name!: string;
 
-  @IsPhoneNumber('PE', { message: 'El número de teléfono debe ser válido para Perú' })
+  @IsPhoneNumber('MX', { message: 'El número de teléfono debe ser válido para Mexico' })
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   phone!: string;
 

@@ -19,14 +19,16 @@ export class CreateUserByAdminDto {
   @IsNotEmpty()
   name!: string;
 
-  @IsPhoneNumber('PE')
+  @IsPhoneNumber('MX')
   @IsNotEmpty()
   phone!: string;
 
   @IsString()
   @MinLength(8)
   @MaxLength(50)
-  @Matches(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+  @Matches(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message: 'Si proporciona contraseña, debe contener mayúsculas, minúsculas y números',
+  })
   @IsOptional() // ← Sigue siendo opcional para admin
   password?: string;
 
