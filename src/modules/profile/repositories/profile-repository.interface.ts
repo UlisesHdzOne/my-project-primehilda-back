@@ -1,10 +1,10 @@
-import type { UserWithProfileResponseDto } from '../dto/user-with-profile-response.dto';
-import type { UpdateCompleteProfileDto } from '../dto/update-complete-profile.dto';
+import type {
+  UpdatedUserWithProfile,
+  UpdateProfileData,
+  UserWithProfileFromRepo,
+} from '../types/profile-safe.type';
 
 export interface IProfileRepository {
-  findUserWithProfile(userId: number): Promise<UserWithProfileResponseDto | null>;
-  updateUserWithProfile(
-    userId: number,
-    data: UpdateCompleteProfileDto,
-  ): Promise<UserWithProfileResponseDto>;
+  findUserWithProfile(userId: number): Promise<UserWithProfileFromRepo | null>;
+  updateUserWithProfile(userId: number, data: UpdateProfileData): Promise<UpdatedUserWithProfile>;
 }

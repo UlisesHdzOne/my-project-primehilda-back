@@ -1,7 +1,8 @@
-import { Exclude } from 'class-transformer';
-import { Role } from '@prisma/client';
+import type { Role } from '@prisma/client';
+import type { UserSafe } from '@/modules/users/types/user-safe.type';
+import type { ProfilePublic } from '../types/profile-safe.type';
 
-export class UserWithProfileResponseDto {
+export class UserWithProfileResponseDto implements UserSafe {
   // User fields
   id!: number;
   name!: string;
@@ -12,12 +13,5 @@ export class UserWithProfileResponseDto {
   updatedAt!: Date;
 
   // Profile fields (opcionales)
-  profile?: {
-    id: number;
-    bio: string | null;
-    avatarUrl: string | null;
-  };
-
-  @Exclude()
-  password!: string;
+  profile?: ProfilePublic;
 }

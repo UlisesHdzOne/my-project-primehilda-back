@@ -1,15 +1,12 @@
-import { Exclude } from 'class-transformer';
-import { Role } from '@prisma/client';
+import type { Role } from '@prisma/client';
+import type { UserSafe } from '../types/user-safe.type';
 
-export class UserResponseDto {
+export class UserResponseDto implements UserSafe {
   id!: number;
   name!: string;
   phone!: string;
   role!: Role;
   isActive!: boolean;
-
-  @Exclude()
-  password!: string;
 
   createdAt!: Date;
   updatedAt!: Date;

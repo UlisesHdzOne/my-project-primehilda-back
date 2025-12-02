@@ -1,6 +1,17 @@
-import type { User } from '@prisma/client';
+import type { UserBase } from '@/common/types/base.types';
 
-type sensitiveFields = 'password';
-type AuthFields = 'createdAt' | 'updatedAt';
+/**
+ * ✅ UserSafe OPTIMIZADO con Pick
+ * Define EXACTAMENTE qué campos devolvemos en respuestas públicas
+ */
+export type UserSafe = Pick<
+  UserBase,
+  'id' | 'name' | 'phone' | 'role' | 'isActive' | 'createdAt' | 'updatedAt'
+>;
+// Resultado: { id, name, phone, role, isActive, createdAt, updatedAt }
 
-export type UserSafe = Omit<User, sensitiveFields | AuthFields>;
+/**
+ * ✅ UserForList - mínimo para listados
+ */
+export type UserForList = Pick<UserBase, 'id' | 'name' | 'phone'>;
+// Resultado: { id, name, phone }

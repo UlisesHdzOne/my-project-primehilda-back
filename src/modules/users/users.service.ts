@@ -16,6 +16,7 @@ export class UsersService {
     @Inject('USER_REPOSITORY')
     private userRepository: IUserRepository,
     private passwordService: PasswordService,
+    
   ) {}
 
   async findByPhone(phone: string): Promise<UserResponseDto> {

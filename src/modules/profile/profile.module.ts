@@ -4,9 +4,10 @@ import { ProfileService } from './profile.service';
 import { PrismaProfileRepository } from './repositories/prisma-profile.repository';
 import { UsersModule } from '../users/users.module';
 import { ProfileController } from './profile.controller';
+import { DatabaseModule } from '@/database/database.module';
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, DatabaseModule],
   controllers: [ProfileController],
   providers: [
     ProfileService,

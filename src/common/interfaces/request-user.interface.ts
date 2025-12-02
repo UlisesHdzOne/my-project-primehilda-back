@@ -1,9 +1,10 @@
-import type { Role } from '@prisma/client';
+import type { UserBase } from '../types/base.types';
 
-export interface RequestUser {
-  id: number;
-  phone: string;
-  role: Role;
+/**
+ * ✅ OPTIMIZADO con Pick
+ * Payload del JWT - solo lo necesario para autenticación
+ */
+export type RequestUser = Pick<UserBase, 'id' | 'phone' | 'role'> & {
   iat?: number; // JWT issued at
   exp?: number; // JWT expiration
-}
+};

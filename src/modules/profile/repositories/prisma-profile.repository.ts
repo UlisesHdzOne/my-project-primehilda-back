@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { IProfileRepository } from './profile-repository.interface';
-import { UserWithProfileResponseDto } from '../dto/user-with-profile-response.dto';
-import { plainToInstance } from 'class-transformer';
 import { NotFoundException } from '@nestjs/common';
-import { UpdateCompleteProfileDto } from '../dto/update-complete-profile.dto';
+import {
+  UpdatedUserWithProfile,
+  UpdateProfileData,
+  UserWithProfileFromRepo,
+} from '../types/profile-safe.type';
 
 @Injectable()
 export class PrismaProfileRepository implements IProfileRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findUserWithProfile(userId: number): Promise<UserWithProfileResponseDto | null> {
+  async findUserWithProfile(userId: number): Promise<UserWithProfileFromRepo | null> {
     const userWithProfile = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -35,14 +37,14 @@ export class PrismaProfileRepository implements IProfileRepository {
       return null;
     }
 
-    return plainToInstance(UserWithProfileResponseDto, userWithProfile);
+    // TypeScript ya infiere el tipo correctamente
+    return userWithProfile;
   }
 
-  // ✅ ACTUALIZAR PERFIL COMPLETO
   async updateUserWithProfile(
     userId: number,
-    data: UpdateCompleteProfileDto,
-  ): Promise<UserWithProfileResponseDto> {
+    data: UpdateProfileData,
+  ): Promise<UpdatedUserWithProfile> {
     const updatedUser = await this.prisma.$transaction(async tx => {
       // 1. Verificar que el usuario existe
       const existingUser = await tx.user.findUnique({
@@ -54,7 +56,7 @@ export class PrismaProfileRepository implements IProfileRepository {
       }
 
       // 2. Actualizar User (si viene name)
-      if (data.name) {
+      if (data.name !== undefined) {
         await tx.user.update({
           where: { id: userId },
           data: { name: data.name },
@@ -71,8 +73,8 @@ export class PrismaProfileRepository implements IProfileRepository {
           },
           create: {
             userId,
-            bio: data.bio,
-            avatarUrl: data.avatarUrl,
+            bio: data.bio ?? null,
+            avatarUrl: data.avatarUrl ?? null,
           },
         });
       }
@@ -86,7 +88,6 @@ export class PrismaProfileRepository implements IProfileRepository {
           phone: true,
           role: true,
           isActive: true,
-          password: true,
           createdAt: true,
           updatedAt: true,
           profile: {
@@ -100,6 +101,7 @@ export class PrismaProfileRepository implements IProfileRepository {
       });
     });
 
-    return plainToInstance(UserWithProfileResponseDto, updatedUser);
+    // Aquí TypeScript ya sabe que updatedUser tiene el tipo correcto
+    return updatedUser!;
   }
 }
