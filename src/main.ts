@@ -1,48 +1,69 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const logger = new Logger('Bootstrap');
 
-  // ✅ SOLO ValidationPipe (lo esencial)
+  // Configurar global prefix
+  app.setGlobalPrefix('api');
+
+  // Configurar ValidationPipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
       exceptionFactory: errors => {
-        const details = errors.flatMap(err =>
-          Object.values(err.constraints || {}).map(message => ({
-            field: err.property,
-            message,
-          })),
-        );
-        return new BadRequestException({ details });
+        const details = errors.map(err => ({
+          field: err.property,
+          message: Object.values(err.constraints || {}).join(', '),
+        }));
+        return new BadRequestException({
+          success: false,
+          error: 'Validation Error',
+          details,
+        });
       },
     }),
   );
 
-  // ✅ CORS básico
+  // Configurar Exception Filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // Configurar CORS - Simple y efectivo
+  const corsOrigin = configService.get('app.cors.origin') || [
+    'http://localhost:5173',
+    'http://localhost:8100',
+  ];
+
   app.enableCors({
-    origin: configService.get('app.frontendUrl'),
+    origin: corsOrigin,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
-  // ✅ Puerto
+  logger.log(
+    `✅ CORS configurado para: ${Array.isArray(corsOrigin) ? corsOrigin.join(', ') : corsOrigin}`,
+  );
+
+  // Obtener puerto
   const port = configService.get<number>('app.port') || 3000;
 
   await app.listen(port);
 
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  // Log de información
+  logger.log(`🚀 Servidor iniciado en: http://localhost:${port}/api`);
+  logger.log(`🌍 Ambiente: ${configService.get('app.nodeEnv')}`);
 }
 
 bootstrap().catch(error => {
-  console.error('❌ Error during bootstrap:', error);
+  const logger = new Logger('Bootstrap');
+  logger.error('❌ Error durante el inicio:', error);
   process.exit(1);
 });

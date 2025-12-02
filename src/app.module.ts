@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import appConfig, { validationSchema } from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { AppController } from './app.controller';
@@ -8,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { CorsHeadersInterceptor } from './common/interceptors/cors.interceptor';
 
 @Module({
   imports: [
@@ -15,6 +17,12 @@ import { ProfileModule } from './modules/profile/profile.module';
       isGlobal: true,
       load: [appConfig],
       validationSchema,
+      validationOptions: {
+        allowUnknown: true, // ← ¡ESTO ES CLAVE!
+        abortEarly: false,
+      },
+      ignoreEnvFile: false,
+      ignoreEnvVars: false,
     }),
     DatabaseModule,
     CommonModule,
@@ -23,6 +31,12 @@ import { ProfileModule } from './modules/profile/profile.module';
     ProfileModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CorsHeadersInterceptor,
+    },
+  ],
 })
 export class AppModule {}

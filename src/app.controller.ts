@@ -1,9 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res, Req, Headers, Logger } from '@nestjs/common';
 import { PrismaService } from './database/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 
 @Controller()
 export class AppController {
+  private readonly logger = new Logger(AppController.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
@@ -32,6 +35,10 @@ export class AppController {
       timestamp: new Date().toISOString(),
       environment: this.configService.get('app.nodeEnv'),
       port: this.configService.get('app.port'),
+      cors: {
+        origin: this.configService.get('app.cors.origin'),
+        credentials: this.configService.get('app.cors.credentials'),
+      },
       services: {
         database: dbStatus,
       },
@@ -51,6 +58,26 @@ export class AppController {
       total: 2,
       message: 'Datos de prueba',
     };
+  }
+
+  @Get('cors-test')
+  testCors(@Req() request: Request, @Res() response: Response, @Headers('origin') origin: string) {
+    const corsConfig = this.configService.get('app.cors');
+
+    this.logger.log(`CORS Test Request - Origin: ${origin}`);
+    this.logger.log(`CORS Config: ${JSON.stringify(corsConfig)}`);
+
+    return response.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      request: {
+        origin,
+        method: request.method,
+        headers: request.headers,
+      },
+      corsConfig,
+      message: 'CORS está configurado correctamente',
+    });
   }
 
   private getMemoryUsage() {
