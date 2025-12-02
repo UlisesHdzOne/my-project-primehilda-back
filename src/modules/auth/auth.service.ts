@@ -23,7 +23,11 @@ export class AuthService {
     const user = await this.usersService.createUserPublic(registerDto);
 
     // Generar token JWT
-    const payload = { sub: user.id, phone: user.phone, role: user.role };
+    const payload: Omit<RequestUser, 'iat' | 'exp'> = {
+      id: user.id,
+      phone: user.phone,
+      role: user.role,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     return {
