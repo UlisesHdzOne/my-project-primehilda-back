@@ -1,3 +1,7 @@
+// ============================================
+// 📁 src/modules/users/dto/find-users-query.dto.ts
+// ============================================
+
 import {
   IsOptional,
   IsString,
@@ -15,19 +19,19 @@ import { Role } from '@prisma/client';
 export class FindUsersQueryDto {
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(0, { message: 'El skip no puede ser negativo' })
+  @IsNumber({}, { message: 'skip debe ser un número' })
+  @Min(0, { message: 'skip no puede ser negativo' })
   skip?: number = 0;
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
-  @Min(1, { message: 'El take debe ser al menos 1' })
-  @Max(100, { message: 'El take no puede exceder 100' })
+  @IsNumber({}, { message: 'take debe ser un número' })
+  @Min(1, { message: 'take debe ser al menos 1' })
+  @Max(100, { message: 'take no puede exceder 100' })
   take?: number = 10;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'search debe ser texto' })
   @MaxLength(100, { message: 'La búsqueda no puede exceder 100 caracteres' })
   search?: string;
 
@@ -36,19 +40,21 @@ export class FindUsersQueryDto {
   role?: Role;
 
   @IsOptional()
-  @IsBoolean()
   @Type(() => Boolean)
+  @IsBoolean({ message: 'isActive debe ser booleano' })
   isActive?: boolean;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'orderBy debe ser texto' })
   @IsIn(['id', 'name', 'phone', 'createdAt', 'updatedAt'], {
-    message: 'El campo de ordenamiento no es válido',
+    message: 'orderBy debe ser: id, name, phone, createdAt o updatedAt',
   })
-  orderBy?: string = 'createdAt';
+  orderBy?: 'id' | 'name' | 'phone' | 'createdAt' | 'updatedAt' = 'createdAt';
 
   @IsOptional()
-  @IsString()
-  @IsIn(['asc', 'desc'], { message: 'La dirección de ordenamiento debe ser asc o desc' })
+  @IsString({ message: 'orderDirection debe ser texto' })
+  @IsIn(['asc', 'desc'], {
+    message: 'orderDirection debe ser asc o desc',
+  })
   orderDirection?: 'asc' | 'desc' = 'desc';
 }

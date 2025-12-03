@@ -1,13 +1,30 @@
-import type { CreateUserInput, FindUsersInput } from '../types/user.input.type';
-import type { UserFromRepo, UserWithPasswordFromRepo } from '../types/user.repo.type';
+import type {
+  CreateUserInput,
+  FindUsersInput,
+  UserFromRepository,
+  UserWithPasswordFromRepository,
+  CountUsersParams,
+} from '../types/user.types';
 
+/**
+ * Contrato del repositorio de usuarios
+ */
 export interface IUserRepository {
-  // Para autenticación (con password)
-  findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepo | null>;
+  // Búsquedas sin password
+  findByPhone(phone: string): Promise<UserFromRepository | null>;
+  findById(id: number): Promise<UserFromRepository | null>;
+  findMany(params: FindUsersInput): Promise<UserFromRepository[]>;
 
-  // Para mostrar usuarios (sin password)
-  findByPhone(phone: string): Promise<UserFromRepo | null>;
-  findById(id: number): Promise<UserFromRepo | null>;
-  create(userData: CreateUserInput): Promise<UserFromRepo>;
-  findMany(params: FindUsersInput): Promise<UserFromRepo[]>;
+  // Conteo
+  count(params: CountUsersParams): Promise<number>;
+
+  // Búsqueda con password (solo auth)
+  findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null>;
+
+  // Mutaciones
+  create(userData: CreateUserInput): Promise<UserFromRepository>;
+
+  // Actualizaciones (si las necesitas)
+  // update(id: number, data: UpdateUserInput): Promise<UserFromRepository>;
+  // delete(id: number): Promise<void>;
 }

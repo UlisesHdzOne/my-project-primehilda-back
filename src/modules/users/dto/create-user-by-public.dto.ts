@@ -1,3 +1,7 @@
+// ============================================
+// 📁 src/modules/users/dto/create-user-by-public.dto.ts
+// ============================================
+
 import {
   IsString,
   IsPhoneNumber,
@@ -17,7 +21,7 @@ export class CreateUserByPublicDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   name!: string;
 
-  @IsPhoneNumber('MX', { message: 'El número de teléfono debe ser válido para Mexico' })
+  @IsPhoneNumber('MX', { message: 'El número de teléfono debe ser válido para México' })
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   phone!: string;
 

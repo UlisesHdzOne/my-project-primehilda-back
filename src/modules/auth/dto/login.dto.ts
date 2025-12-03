@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString, MaxLength, MinLength, IsPhoneNumber } from 'class-validator';
 
 export class LoginDto {
-  @IsPhoneNumber('MX', { message: 'El número de teléfono debe ser válido para Mexico' })
+  @IsPhoneNumber('MX', { message: 'El número de teléfono debe ser válido para México' })
   @IsNotEmpty({ message: 'El teléfono es obligatorio' })
   phone!: string;
 

@@ -1,3 +1,7 @@
+// ============================================
+// 📁 src/modules/users/users.controller.ts
+// ============================================
+
 import {
   Body,
   Controller,
@@ -8,63 +12,131 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Role } from '@prisma/client';
-import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
-//import { User } from '@/common/decorators/user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { Role } from '@prisma/client';
+
+// DTOs
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { FindUsersQueryDto } from './dto/find-users-query.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { UsersListResponseDto } from './dto/users-list-response.dto';
+
+// Types
+import type { CreateUserInput, FindUsersInput } from './types/user.types';
 
 @UseInterceptors(ResponseInterceptor)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // -------------------- ENDPOINTS ADMIN --------------------
+  // ============================================
+  // 🔐 ENDPOINTS ADMIN
+  // ============================================
+
+  /**
+   * POST /users/admin/create
+   * Crear usuario (solo admin)
+   *
+   * FLUJO:
+   * 1. DTO valida los datos de entrada
+   * 2. Controller convierte DTO → Type
+   * 3. Service procesa y retorna Type
+   * 4. Controller serializa Type → DTO
+   */
   @Post('admin/create')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  @UsePipes(new ValidationPipe())
-  async createByAdmin(@Body() createUserDto: CreateUserByAdminDto) {
-    const newUser = await this.usersService.createUserByAdmin(createUserDto);
-    return {
-      user: newUser,
-      message: 'Usuario creado exitosamente por administrador',
+  async createByAdmin(@Body() dto: CreateUserByAdminDto): Promise<UserResponseDto> {
+    // ✅ Conversión DTO → Type (adaptador)
+    const input: CreateUserInput = {
+      name: dto.name,
+      phone: dto.phone,
+      password: dto.password ?? '', // El service genera si es vacío
+      role: dto.role,
+      isActive: dto.isActive,
     };
+
+    // ✅ Llamada al servicio (trabaja con types)
+    const user = await this.usersService.createUserByAdmin(input);
+
+    // ✅ Serialización Type → DTO
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  // -------------------- ENDPOINTS PÚBLICOS / AUTENTICADOS --------------------
-  @Get('health/check')
-  async healthCheck() {
-    return this.usersService.healthCheck();
-  }
+  // ============================================
+  // 👤 ENDPOINTS AUTENTICADOS
+  // ============================================
 
+  /**
+   * GET /users
+   * Listar usuarios con filtros
+   */
+  @Get()
   @UseGuards(JwtAuthGuard)
-  @Get() // ← ahora GET /users
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async findUsers(@Query() query: FindUsersQueryDto) {
-    const users = await this.usersService.findUsers(query);
-    return { users };
+  async findUsers(@Query() queryDto: FindUsersQueryDto): Promise<UsersListResponseDto> {
+    // ✅ Conversión DTO → Type
+    const input: FindUsersInput = {
+      skip: queryDto.skip,
+      take: queryDto.take,
+      search: queryDto.search,
+      role: queryDto.role,
+      isActive: queryDto.isActive,
+      orderBy: queryDto.orderBy,
+      orderDirection: queryDto.orderDirection,
+    };
+
+    // ✅ Llamada al servicio
+    const result = await this.usersService.findUsers(input);
+
+    // ✅ Serialización Type → DTO
+    return plainToInstance(UsersListResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('phone/:phone')
-  async findByPhone(@Param('phone') phone: string) {
-    const user = await this.usersService.findByPhone(phone);
-    return { user };
-  }
-
-  //-------------------- RUTAS DINÁMICAS --------------------
-  @UseGuards(JwtAuthGuard)
+  /**
+   * GET /users/:id
+   * Obtener usuario por ID
+   */
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(JwtAuthGuard)
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
     const user = await this.usersService.findById(id);
-    return { user };
+
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  /**
+   * GET /users/phone/:phone
+   * Buscar por teléfono
+   */
+  @Get('phone/:phone')
+  @UseGuards(JwtAuthGuard)
+  async findByPhone(@Param('phone') phone: string): Promise<UserResponseDto> {
+    const user = await this.usersService.findByPhone(phone);
+
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  // ============================================
+  // 🏥 HEALTH CHECK
+  // ============================================
+
+  @Get('health/check')
+  async healthCheck(): Promise<{ status: string; service: string; timestamp: string }> {
+    return this.usersService.healthCheck();
   }
 }

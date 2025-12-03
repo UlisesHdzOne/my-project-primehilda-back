@@ -1,13 +1,16 @@
 import { Injectable, Inject, NotFoundException, ConflictException, Logger } from '@nestjs/common';
-import { IUserRepository } from './repositories/user-repository.interface';
 import { Role } from '@prisma/client';
-import { CreateUserByPublicDto } from './dto/create-user-by-public.dto';
-import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
+import type { IUserRepository } from './repositories/user-repository.interface';
 import { PasswordService } from '@/common/services/password.service';
-import { FindUsersQueryDto } from './dto/find-users-query.dto';
-import { UserOutput } from './types/user.output.type';
-import { CreateUserInput, FindUsersInput } from './types/user.input.type';
-import { UserFromRepo, UserWithPasswordFromRepo } from './types/user.repo.type';
+
+import type {
+  UserOutput,
+  UsersListOutput,
+  UserListItem,
+  CreateUserInput,
+  FindUsersInput,
+  UserWithPasswordFromRepository,
+} from './types/user.types';
 
 @Injectable()
 export class UsersService {
@@ -19,117 +22,181 @@ export class UsersService {
     private passwordService: PasswordService,
   ) {}
 
-  // ---------- MÉTODOS PÚBLICOS ----------
+  // ============================================
+  // 🔍 BÚSQUEDAS
+  // ============================================
 
+  /**
+   * Buscar usuario por teléfono
+   * ✅ Sin conversión - el repo devuelve UserFromRepository === UserOutput
+   */
   async findByPhone(phone: string): Promise<UserOutput> {
     const user = await this.userRepository.findByPhone(phone);
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-    return this.toUserOutput(user);
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // ✅ No necesitamos conversión, UserFromRepository === UserOutput
+    return user;
   }
 
-  async findUsers(params: FindUsersQueryDto): Promise<UserOutput[]> {
-    const input: FindUsersInput = {
-      skip: params.skip,
-      take: params.take,
+  /**
+   * Buscar usuario por ID
+   * ✅ Sin conversión innecesaria
+   */
+  async findById(id: number): Promise<UserOutput> {
+    const user = await this.userRepository.findById(id);
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    return user;
+  }
+
+  /**
+   * Buscar usuarios con filtros y paginación
+   * ✅ Aquí SÍ transformamos porque queremos UserListItem (más compacto)
+   */
+  async findUsers(params: FindUsersInput): Promise<UsersListOutput> {
+    const users = await this.userRepository.findMany(params);
+    const total = await this.userRepository.count({
       search: params.search,
       role: params.role,
       isActive: params.isActive,
-      orderBy: params.orderBy,
-      orderDirection: params.orderDirection,
+    });
+
+    // ✅ Transformación válida: UserFromRepository[] → UserListItem[]
+    const userList: UserListItem[] = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+    }));
+
+    const pageSize = params.take ?? 10;
+    const currentPage = Math.floor((params.skip ?? 0) / pageSize) + 1;
+
+    return {
+      users: userList,
+      total,
+      page: currentPage,
+      pageSize,
     };
-
-    const users = await this.userRepository.findMany(input);
-    return users.map(user => this.toUserOutput(user));
   }
 
-  async findById(id: number): Promise<UserOutput> {
-    const user = await this.userRepository.findById(id);
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-    return this.toUserOutput(user);
-  }
+  // ============================================
+  // ✏️ CREACIÓN DE USUARIOS
+  // ============================================
 
-  // Creación por administrador
-  async createUserByAdmin(createUserDto: CreateUserByAdminDto): Promise<UserOutput> {
-    await this.verifyUserNotExists(createUserDto.phone);
+  /**
+   * Crear usuario por administrador
+   * Puede generar contraseña automática si no se proporciona
+   */
+  async createUserByAdmin(data: CreateUserInput): Promise<UserOutput> {
+    // 1. Validar que no existe
+    await this.ensurePhoneNotTaken(data.phone);
 
-    const { plain, hash } = await this.processPassword(createUserDto.password);
+    // 2. Procesar contraseña
+    const { plainPassword, hashedPassword } = await this.processPassword(data.password);
 
+    // 3. Crear usuario
     const input: CreateUserInput = {
-      name: createUserDto.name,
-      phone: createUserDto.phone,
-      password: hash,
-      role: createUserDto.role || Role.CONSUMER,
-      isActive: createUserDto.isActive ?? true,
+      name: data.name,
+      phone: data.phone,
+      password: hashedPassword,
+      role: data.role ?? Role.CONSUMER,
+      isActive: data.isActive ?? true,
     };
 
     const user = await this.userRepository.create(input);
 
-    // Notificar si no se proporcionó contraseña
-    if (!createUserDto.password) {
-      await this.notifyUserWithPassword(createUserDto.phone, plain);
+    // 4. Si se generó contraseña, notificar
+    if (!data.password) {
+      this.notifyUserWithPassword(data.phone, plainPassword);
     }
 
-    return this.toUserOutput(user);
+    // ✅ No necesitamos conversión
+    return user;
   }
 
-  // Creación pública
-  async createUserPublic(createUserData: CreateUserByPublicDto): Promise<UserOutput> {
-    await this.verifyUserNotExists(createUserData.phone);
+  /**
+   * Crear usuario público (registro)
+   */
+  async createUserPublic(data: CreateUserInput): Promise<UserOutput> {
+    await this.ensurePhoneNotTaken(data.phone);
 
-    const { hash } = await this.processPassword(createUserData.password);
+    const hashedPassword = await this.passwordService.hashPassword(data.password);
 
     const input: CreateUserInput = {
-      name: createUserData.name,
-      phone: createUserData.phone,
-      password: hash,
+      name: data.name,
+      phone: data.phone,
+      password: hashedPassword,
       role: Role.CONSUMER,
       isActive: true,
     };
 
-    const user = await this.userRepository.create(input);
-    return this.toUserOutput(user);
+    // ✅ No necesitamos conversión
+    return this.userRepository.create(input);
   }
 
-  async findWithPassword(phone: string): Promise<UserWithPasswordFromRepo | null> {
+  // ============================================
+  // 🔐 AUTENTICACIÓN
+  // ============================================
+
+  /**
+   * Buscar usuario con password (solo para login)
+   * ⚠️ Este método SÍ devuelve un tipo diferente (con password)
+   */
+  async findWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null> {
     return this.userRepository.findByPhoneWithPassword(phone);
   }
 
-  async healthCheck() {
-    return {
-      status: 'ok',
-      service: 'users',
-      timestamp: new Date().toISOString(),
-    };
-  }
+  // ============================================
+  // 🔧 MÉTODOS PRIVADOS
+  // ============================================
 
-  // ---------- MÉTODOS PRIVADOS ----------
-
-  private toUserOutput(user: UserFromRepo): UserOutput {
-    return {
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      role: user.role,
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-  }
-
-  private async verifyUserNotExists(phone: string): Promise<void> {
+  /**
+   * Valida que el teléfono no esté registrado
+   */
+  private async ensurePhoneNotTaken(phone: string): Promise<void> {
     const existingUser = await this.userRepository.findByPhone(phone);
+
     if (existingUser) {
       throw new ConflictException('El teléfono ya está registrado');
     }
   }
 
-  private async processPassword(password?: string) {
-    const plain = password || this.passwordService.generateRandomPassword(12);
-    const hash = await this.passwordService.hashPassword(plain);
-    return { plain, hash };
+  /**
+   * Procesa la contraseña: genera si no existe, hashea
+   */
+  private async processPassword(
+    password?: string,
+  ): Promise<{ plainPassword: string; hashedPassword: string }> {
+    const plainPassword = password || this.passwordService.generateRandomPassword(12);
+    const hashedPassword = await this.passwordService.hashPassword(plainPassword);
+
+    return { plainPassword, hashedPassword };
   }
 
-  private async notifyUserWithPassword(phone: string, password: string): Promise<void> {
-    this.logger.log(`Notificar al usuario ${phone} con contraseña: ${password}`);
+  /**
+   * Notifica al usuario su contraseña generada
+   * TODO: Implementar envío de email/SMS
+   */
+  private notifyUserWithPassword(phone: string, password: string): void {
+    this.logger.log(`🔐 Contraseña generada para ${phone}: ${password}`);
+    // TODO: Enviar por email/SMS
+  }
+
+  // ============================================
+  // 🏥 HEALTH CHECK
+  // ============================================
+
+  async healthCheck(): Promise<{ status: string; service: string; timestamp: string }> {
+    return {
+      status: 'ok',
+      service: 'users',
+      timestamp: new Date().toISOString(),
+    };
   }
 }

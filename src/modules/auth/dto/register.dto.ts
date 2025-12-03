@@ -1,21 +1,13 @@
-// ============================================
-// 📁 src/modules/users/dto/create-user-by-admin.dto.ts
-// ============================================
-
-import { Role } from '@prisma/client';
 import {
   IsString,
   IsPhoneNumber,
   MinLength,
   MaxLength,
   Matches,
-  IsOptional,
-  IsEnum,
-  IsBoolean,
   IsNotEmpty,
 } from 'class-validator';
 
-export class CreateUserByAdminDto {
+export class RegisterDto {
   @IsString({ message: 'El nombre debe ser texto' })
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(50, { message: 'El nombre no puede exceder 50 caracteres' })
@@ -33,16 +25,8 @@ export class CreateUserByAdminDto {
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   @MaxLength(50, { message: 'La contraseña no puede exceder 50 caracteres' })
   @Matches(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
-    message: 'La contraseña debe contener mayúsculas, minúsculas y números',
+    message: 'La contraseña debe contener al menos una mayúscula, una minúscula y un número',
   })
-  @IsOptional() // ✅ Admin puede omitir, se genera automática
-  password?: string;
-
-  @IsEnum(Role, { message: 'El rol debe ser ADMIN o CONSUMER' })
-  @IsOptional()
-  role?: Role;
-
-  @IsBoolean({ message: 'isActive debe ser booleano' })
-  @IsOptional()
-  isActive?: boolean;
+  @IsNotEmpty({ message: 'La contraseña es obligatoria' })
+  password!: string;
 }
