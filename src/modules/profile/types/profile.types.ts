@@ -1,6 +1,8 @@
 import type { UserSafe } from '../../users/types/user.types';
 
-// ENTIDAD DE PERFIL
+/**
+ * Entidad cruda
+ */
 export type UserProfileEntity = {
   id: number;
   userId: number;
@@ -8,38 +10,37 @@ export type UserProfileEntity = {
   avatarUrl: string | null;
 };
 
-// SAFE TYPES
+/**
+ * Safe / Public Types
+ */
 export type ProfileSafe = UserProfileEntity;
+export type ProfilePublic = Pick<UserProfileEntity, 'id' | 'bio' | 'avatarUrl'>;
 
-export type ProfilePublic = {
-  id: number;
-  bio: string | null;
-  avatarUrl: string | null;
-};
-
-// INPUT TYPES
+/**
+ * Input Types
+ */
 export type UpdateCompleteProfileInput = {
   name?: string;
   bio?: string | null;
   avatarUrl?: string | null;
 };
 
-export type CreateProfileInput = {
-  userId: number;
-  bio?: string | null;
-  avatarUrl?: string | null;
-};
+export type CreateProfileInput = { userId: number; bio?: string | null; avatarUrl?: string | null };
 
-// OUTPUT TYPES
+/**
+ * Output Types
+ */
 export type ProfileOutput = ProfilePublic;
+export type UserWithProfileOutput = UserSafe & { profile?: ProfileSafe | null };
 
-// 🔗 Usuario con perfil (solo aquí)
-export type UserWithProfileOutput = UserSafe & { profile?: UserProfileEntity | null };
-
-// REPOSITORIO TYPES
+/**
+ * Repository
+ */
 export type ProfileFromRepository = UserProfileEntity;
 
-// TYPE GUARDS
+/**
+ * Type Guards
+ */
 export function hasProfile(user: UserWithProfileOutput): boolean {
   return !!user.profile;
 }

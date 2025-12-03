@@ -1,9 +1,7 @@
 import type { Role } from '@prisma/client';
 
 /**
- * 🏗️ INTERFAZ BASE DE USER
- * Representa todos los campos que Prisma devuelve para User
- * Esta es nuestra "fuente de verdad"
+ * Base de User
  */
 export interface UserBase {
   id: number;
@@ -17,8 +15,7 @@ export interface UserBase {
 }
 
 /**
- * 🏗️ INTERFAZ BASE DE USER_PROFILE
- * Representa todos los campos que Prisma devuelve para UserProfile
+ * Base de UserProfile
  */
 export interface UserProfileBase {
   id: number;
@@ -28,7 +25,7 @@ export interface UserProfileBase {
 }
 
 /**
- * 🏗️ TIPOS COMUNES DERIVADOS (para reuso)
+ * Tipos derivados
  */
 export type UserIdentifier = Pick<UserBase, 'id' | 'phone'>;
 export type UserBasicInfo = Pick<UserBase, 'id' | 'name' | 'phone'>;

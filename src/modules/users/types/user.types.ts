@@ -1,12 +1,14 @@
-import type { User, Role } from '@prisma/client';
+import type { Role } from '@prisma/client';
+import type { UserBase } from 'shared/types/base.types';
 
-// ENTIDAD CRUDA
-export type UserEntity = User;
+/**
+ * Safe Output (sin password)
+ */
+export type UserSafe = Omit<UserBase, 'password'>;
 
-// OUTPUT SEGURO (sin password)
-export type UserSafe = Omit<UserEntity, 'password'>;
-
-// INPUTS
+/**
+ * Input Types
+ */
 export type UserCreateInput = {
   name: string;
   phone: string;
@@ -15,23 +17,16 @@ export type UserCreateInput = {
   isActive?: boolean;
 };
 
-export type CreateUserByAdminInput = {
-  name: string;
-  phone: string;
-  password?: string;
-  role?: Role;
-  isActive?: boolean;
-};
+/**
+ * Diferentes flujos de creación
+ */
+export type CreateUserByAdminInput = Omit<UserCreateInput, 'password'> & { password?: string };
+export type CreateUserPublicInput = Pick<UserCreateInput, 'name' | 'phone' | 'password'>;
 
-export type CreateUserPublicInput = {
-  name: string;
-  phone: string;
-  password: string;
-};
-
-// LISTAS / FILTROS
+/**
+ * List / Filter
+ */
 export type UserListItem = Pick<UserSafe, 'id' | 'name' | 'phone'>;
-
 export type FindUsersInput = {
   skip?: number;
   take?: number;
@@ -41,18 +36,26 @@ export type FindUsersInput = {
   orderBy?: keyof UserSafe;
   orderDirection?: 'asc' | 'desc';
 };
-
 export type CountUsersParams = Pick<FindUsersInput, 'search' | 'role' | 'isActive'>;
 
-// REPOSITORIO
-export type UserWithPasswordFromRepository = UserEntity;
+/**
+ * Repository type (con password)
+ */
+export type UserWithPasswordFromRepository = Pick<
+  UserBase,
+  'id' | 'phone' | 'password' | 'isActive' | 'role'
+>;
 
-// TYPE GUARD
-export function hasPassword(user: UserSafe | UserEntity): user is UserEntity {
+/**
+ * Type Guards
+ */
+export function hasPassword(user: UserSafe | UserBase): user is UserBase {
   return 'password' in user;
 }
 
-// SALIDAS
+/**
+ * Output
+ */
 export type UsersListOutput = {
   users: UserListItem[];
   total: number;
