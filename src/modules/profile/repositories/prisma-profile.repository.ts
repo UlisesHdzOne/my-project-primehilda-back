@@ -2,11 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { IProfileRepository } from './profile-repository.interface';
 import { NotFoundException } from '@nestjs/common';
-import {
-  UpdatedUserWithProfile,
-  UpdateProfileData,
-  UserWithProfileFromRepo,
-} from '../types/profile-safe.type';
+import { UserWithProfileFromRepo } from '../types/profile.repo.type';
+import { UpdateProfileInput } from '../types/profile.input.type';
 
 @Injectable()
 export class PrismaProfileRepository implements IProfileRepository {
@@ -33,27 +30,17 @@ export class PrismaProfileRepository implements IProfileRepository {
       },
     });
 
-    if (!userWithProfile) {
-      return null;
-    }
-
-    // TypeScript ya infiere el tipo correctamente
     return userWithProfile;
   }
 
   async updateUserWithProfile(
     userId: number,
-    data: UpdateProfileData,
-  ): Promise<UpdatedUserWithProfile> {
+    data: UpdateProfileInput,
+  ): Promise<UserWithProfileFromRepo> {
     const updatedUser = await this.prisma.$transaction(async tx => {
       // 1. Verificar que el usuario existe
-      const existingUser = await tx.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!existingUser) {
-        throw new NotFoundException('Usuario no encontrado');
-      }
+      const existingUser = await tx.user.findUnique({ where: { id: userId } });
+      if (!existingUser) throw new NotFoundException('Usuario no encontrado');
 
       // 2. Actualizar User (si viene name)
       if (data.name !== undefined) {
@@ -101,7 +88,10 @@ export class PrismaProfileRepository implements IProfileRepository {
       });
     });
 
-    // Aquí TypeScript ya sabe que updatedUser tiene el tipo correcto
-    return updatedUser!;
+    if (!updatedUser) {
+      throw new NotFoundException('Usuario no encontrado después de la actualización');
+    }
+
+    return updatedUser;
   }
 }

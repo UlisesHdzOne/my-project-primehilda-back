@@ -16,6 +16,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Role } from '@prisma/client';
 import { UpdateCompleteProfileDto } from './dto/update-complete-profile.dto';
+import { UserWithProfileResponseDto } from './dto/user-with-profile-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @UseInterceptors(ResponseInterceptor)
 @Controller('profile')
@@ -28,13 +30,18 @@ export class ProfileController {
   // -----------------------
 
   @Get()
-  getMyCompleteProfile(@User('id') userId: number) {
-    return this.profileService.getUserWithProfile(userId);
+  async getMyCompleteProfile(@User('id') userId: number) {
+    const profile = await this.profileService.getUserWithProfile(userId);
+    return plainToInstance(UserWithProfileResponseDto, profile);
   }
 
   @Put()
-  updateMyCompleteProfile(@User('id') userId: number, @Body() data: UpdateCompleteProfileDto) {
-    return this.profileService.updateMyCompleteProfile(userId, data);
+  async updateMyCompleteProfile(
+    @User('id') userId: number,
+    @Body() data: UpdateCompleteProfileDto,
+  ) {
+    const updatedProfile = await this.profileService.updateMyCompleteProfile(userId, data);
+    return plainToInstance(UserWithProfileResponseDto, updatedProfile);
   }
 
   // -----------------------
@@ -44,17 +51,19 @@ export class ProfileController {
   @Get('users/:id')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  getUserProfile(@Param('id', ParseIntPipe) userId: number) {
-    return this.profileService.getUserWithProfile(userId);
+  async getUserProfile(@Param('id', ParseIntPipe) userId: number) {
+    const profile = await this.profileService.getUserWithProfile(userId);
+    return plainToInstance(UserWithProfileResponseDto, profile);
   }
 
   @Put('users/:id')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  updateUserProfile(
+  async updateUserProfile(
     @Param('id', ParseIntPipe) userId: number,
     @Body() data: UpdateCompleteProfileDto,
   ) {
-    return this.profileService.updateMyCompleteProfile(userId, data);
+    const updatedProfile = await this.profileService.updateMyCompleteProfile(userId, data);
+    return plainToInstance(UserWithProfileResponseDto, updatedProfile);
   }
 }

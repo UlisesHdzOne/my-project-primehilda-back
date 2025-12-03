@@ -1,5 +1,5 @@
 import type { Role } from '@prisma/client';
-import type { UserSafe } from '../types/user-safe.type';
+import type { UserSafe } from '../types/user.shared.type';
 
 export class UserResponseDto implements UserSafe {
   id!: number;

@@ -1,17 +1,26 @@
+import { Expose } from 'class-transformer';
 import type { Role } from '@prisma/client';
-import type { ProfilePublic } from '../types/profile.shared.type';
 import type { UserSafe } from '@/modules/users/types/user.shared.type';
 
-export class UserWithProfileResponseDto implements UserSafe {
-  // User fields
+export class RegisterResponseDto implements UserSafe {
+  @Expose()
   id!: number;
-  name!: string;
-  phone!: string;
-  role!: Role;
-  isActive!: boolean;
-  createdAt!: Date;
-  updatedAt!: Date;
 
-  // Profile fields (opcionales)
-  profile?: ProfilePublic;
+  @Expose()
+  name!: string;
+
+  @Expose()
+  phone!: string;
+
+  @Expose()
+  role!: Role;
+
+  @Expose()
+  isActive!: boolean;
+
+  @Expose()
+  createdAt!: Date;
+
+  @Expose()
+  updatedAt!: Date;
 }

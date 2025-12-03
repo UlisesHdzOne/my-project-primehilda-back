@@ -1,12 +1,13 @@
 import { Injectable, Inject, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { IUserRepository } from './repositories/user-repository.interface';
-import { Role, User } from '@prisma/client';
-import { plainToInstance } from 'class-transformer';
-import { UserResponseDto } from './dto/user-response.dto';
+import { Role } from '@prisma/client';
 import { CreateUserByPublicDto } from './dto/create-user-by-public.dto';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { PasswordService } from '@/common/services/password.service';
 import { FindUsersQueryDto } from './dto/find-users-query.dto';
+import { UserOutput } from './types/user.output.type';
+import { CreateUserInput, FindUsersInput } from './types/user.input.type';
+import { UserFromRepo, UserWithPasswordFromRepo } from './types/user.repo.type';
 
 @Injectable()
 export class UsersService {
@@ -16,74 +17,80 @@ export class UsersService {
     @Inject('USER_REPOSITORY')
     private userRepository: IUserRepository,
     private passwordService: PasswordService,
-    
   ) {}
 
-  async findByPhone(phone: string): Promise<UserResponseDto> {
+  // ---------- MÉTODOS PÚBLICOS ----------
+
+  async findByPhone(phone: string): Promise<UserOutput> {
     const user = await this.userRepository.findByPhone(phone);
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    return plainToInstance(UserResponseDto, user);
+    return this.toUserOutput(user);
   }
 
-  async findUsers(params: FindUsersQueryDto): Promise<UserResponseDto[]> {
-    const users = await this.userRepository.findMany({
-      skip: params.skip ?? 0,
-      take: params.take ?? 10,
+  async findUsers(params: FindUsersQueryDto): Promise<UserOutput[]> {
+    const input: FindUsersInput = {
+      skip: params.skip,
+      take: params.take,
       search: params.search,
       role: params.role,
       isActive: params.isActive,
       orderBy: params.orderBy,
       orderDirection: params.orderDirection,
-    });
+    };
 
-    return users.map(u => plainToInstance(UserResponseDto, u));
+    const users = await this.userRepository.findMany(input);
+    return users.map(user => this.toUserOutput(user));
   }
 
-  async findById(id: number): Promise<UserResponseDto> {
+  async findById(id: number): Promise<UserOutput> {
     const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    return plainToInstance(UserResponseDto, user);
+    return this.toUserOutput(user);
   }
 
   // Creación por administrador
-  async createUserByAdmin(createUserDto: CreateUserByAdminDto): Promise<UserResponseDto> {
+  async createUserByAdmin(createUserDto: CreateUserByAdminDto): Promise<UserOutput> {
     await this.verifyUserNotExists(createUserDto.phone);
 
     const { plain, hash } = await this.processPassword(createUserDto.password);
 
-    const user = await this.userRepository.create({
+    const input: CreateUserInput = {
       name: createUserDto.name,
       phone: createUserDto.phone,
       password: hash,
       role: createUserDto.role || Role.CONSUMER,
       isActive: createUserDto.isActive ?? true,
-    });
+    };
+
+    const user = await this.userRepository.create(input);
 
     // Notificar si no se proporcionó contraseña
     if (!createUserDto.password) {
       await this.notifyUserWithPassword(createUserDto.phone, plain);
     }
 
-    return plainToInstance(UserResponseDto, user);
+    return this.toUserOutput(user);
   }
 
   // Creación pública
-  async createUserPublic(createUserData: CreateUserByPublicDto): Promise<UserResponseDto> {
+  async createUserPublic(createUserData: CreateUserByPublicDto): Promise<UserOutput> {
     await this.verifyUserNotExists(createUserData.phone);
 
     const { hash } = await this.processPassword(createUserData.password);
-    const user = await this.userRepository.create({
+
+    const input: CreateUserInput = {
       name: createUserData.name,
       phone: createUserData.phone,
       password: hash,
       role: Role.CONSUMER,
       isActive: true,
-    });
+    };
 
-    return plainToInstance(UserResponseDto, user);
+    const user = await this.userRepository.create(input);
+    return this.toUserOutput(user);
   }
 
-  async findWithPassword(phone: string): Promise<User | null> {
+  async findWithPassword(phone: string): Promise<UserWithPasswordFromRepo | null> {
     return this.userRepository.findByPhoneWithPassword(phone);
   }
 
@@ -95,7 +102,19 @@ export class UsersService {
     };
   }
 
-  // ----------------- MÉTODOS PRIVADOS -----------------
+  // ---------- MÉTODOS PRIVADOS ----------
+
+  private toUserOutput(user: UserFromRepo): UserOutput {
+    return {
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
 
   private async verifyUserNotExists(phone: string): Promise<void> {
     const existingUser = await this.userRepository.findByPhone(phone);
@@ -107,12 +126,10 @@ export class UsersService {
   private async processPassword(password?: string) {
     const plain = password || this.passwordService.generateRandomPassword(12);
     const hash = await this.passwordService.hashPassword(plain);
-
     return { plain, hash };
   }
 
   private async notifyUserWithPassword(phone: string, password: string): Promise<void> {
     this.logger.log(`Notificar al usuario ${phone} con contraseña: ${password}`);
-    // Aquí podrías integrar tu servicio real de notificación
   }
 }

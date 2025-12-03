@@ -1,70 +1,44 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateUserData, FindManyParams, IUserRepository } from './user-repository.interface';
-import { User } from '@prisma/client';
-import { UserSafe } from '../types/user-safe.type';
+import { IUserRepository } from './user-repository.interface';
+import { UserFromRepo, UserWithPasswordFromRepo } from '../types/user.repo.type';
+import { CreateUserInput, FindUsersInput } from '../types/user.input.type';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
   constructor(private prisma: PrismaService) {}
 
-  // ✅ NUEVO MÉTODO - Para LOGIN/AUTH
-  async findByPhoneWithPassword(phone: string): Promise<User | null> {
+  async findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepo | null> {
     return this.prisma.user.findUnique({
       where: { phone },
-      // ← SIN select (trae TODOS los campos, INCLUYENDO password)
     });
   }
 
-  async findByPhone(phone: string): Promise<UserSafe | null> {
+  async findByPhone(phone: string): Promise<UserFromRepo | null> {
     return this.prisma.user.findUnique({
       where: { phone },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.getSafeSelect(),
     });
   }
 
-  async findById(id: number): Promise<UserSafe | null> {
+  async findById(id: number): Promise<UserFromRepo | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.getSafeSelect(),
     });
   }
 
-  async create(userData: CreateUserData): Promise<UserSafe> {
+  async create(userData: CreateUserInput): Promise<UserFromRepo> {
     return this.prisma.user.create({
       data: userData,
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.getSafeSelect(),
     });
   }
 
-  async findMany(params: FindManyParams): Promise<UserSafe[]> {
+  async findMany(params: FindUsersInput): Promise<UserFromRepo[]> {
     const {
-      skip,
-      take,
+      skip = 0, // Valor por defecto
+      take = 10, // Valor por defecto
       search,
       isActive,
       role,
@@ -92,15 +66,19 @@ export class PrismaUserRepository implements IUserRepository {
       orderBy: {
         [orderBy]: orderDirection,
       },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.getSafeSelect(),
     });
+  }
+
+  private getSafeSelect() {
+    return {
+      id: true,
+      name: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+    };
   }
 }

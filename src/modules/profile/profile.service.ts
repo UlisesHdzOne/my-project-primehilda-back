@@ -1,7 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { IProfileRepository } from './repositories/profile-repository.interface';
-import { UserWithProfileResponseDto } from './dto/user-with-profile-response.dto';
-import { UpdateCompleteProfileDto } from './dto/update-complete-profile.dto';
+import { UpdateProfileInput } from './types/profile.input.type';
+import { UserWithProfileOutput } from './types/profile.output.type';
+import { UserWithProfileFromRepo } from './types/profile.repo.type';
 
 @Injectable()
 export class ProfileService {
@@ -10,16 +11,36 @@ export class ProfileService {
     private profileRepository: IProfileRepository,
   ) {}
 
-  async getUserWithProfile(userId: number): Promise<UserWithProfileResponseDto> {
+  private toUserWithProfileOutput(data: UserWithProfileFromRepo): UserWithProfileOutput {
+    const { profile, ...userData } = data;
+
+    return {
+      ...userData,
+      profile: profile
+        ? {
+            id: profile.id,
+            bio: profile.bio,
+            avatarUrl: profile.avatarUrl,
+          }
+        : undefined,
+    };
+  }
+
+  async getUserWithProfile(userId: number): Promise<UserWithProfileOutput> {
     const userWithProfile = await this.profileRepository.findUserWithProfile(userId);
+
     if (!userWithProfile) {
       throw new NotFoundException('Perfil de usuario no encontrado');
     }
-    return userWithProfile;
+
+    return this.toUserWithProfileOutput(userWithProfile);
   }
 
-  async updateMyCompleteProfile(userId: number, data: UpdateCompleteProfileDto) {
-    return this.profileRepository.updateUserWithProfile(userId, data);
+  async updateMyCompleteProfile(
+    userId: number,
+    data: UpdateProfileInput,
+  ): Promise<UserWithProfileOutput> {
+    const updatedUser = await this.profileRepository.updateUserWithProfile(userId, data);
+    return this.toUserWithProfileOutput(updatedUser);
   }
 }
-//hay error en este servicio ya que hay que quitar los dto y usar types
