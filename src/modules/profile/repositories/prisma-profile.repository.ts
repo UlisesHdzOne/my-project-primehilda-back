@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import type { IProfileRepository } from './profile-repository.interface';
 import type {
-  UserWithProfileFromRepository,
+  UserWithProfileOutput,
   UpdateCompleteProfileInput,
   ProfileFromRepository,
   CreateProfileInput,
@@ -12,11 +12,7 @@ import type {
 export class PrismaProfileRepository implements IProfileRepository {
   constructor(private prisma: PrismaService) {}
 
-  // ============================================
-  // 🔍 BÚSQUEDAS
-  // ============================================
-
-  async findUserWithProfile(userId: number): Promise<UserWithProfileFromRepository | null> {
+  async findUserWithProfile(userId: number): Promise<UserWithProfileOutput | null> {
     return this.prisma.user.findUnique({
       where: { id: userId },
       select: this.getUserWithProfileSelect(),
@@ -36,16 +32,11 @@ export class PrismaProfileRepository implements IProfileRepository {
     return count > 0;
   }
 
-  // ============================================
-  // ✏️ MUTACIONES
-  // ============================================
-
   async updateUserWithProfile(
     userId: number,
     data: UpdateCompleteProfileInput,
-  ): Promise<UserWithProfileFromRepository> {
+  ): Promise<UserWithProfileOutput> {
     const updatedUser = await this.prisma.$transaction(async tx => {
-      // 1. Verificar que el usuario existe
       const existingUser = await tx.user.findUnique({
         where: { id: userId },
       });
@@ -54,7 +45,6 @@ export class PrismaProfileRepository implements IProfileRepository {
         throw new NotFoundException('Usuario no encontrado');
       }
 
-      // 2. Actualizar User si viene 'name'
       if (data.name !== undefined) {
         await tx.user.update({
           where: { id: userId },
@@ -62,7 +52,6 @@ export class PrismaProfileRepository implements IProfileRepository {
         });
       }
 
-      // 3. Upsert UserProfile si viene bio o avatarUrl
       if (data.bio !== undefined || data.avatarUrl !== undefined) {
         await tx.userProfile.upsert({
           where: { userId },
@@ -78,7 +67,6 @@ export class PrismaProfileRepository implements IProfileRepository {
         });
       }
 
-      // 4. Obtener datos actualizados
       const user = await tx.user.findUnique({
         where: { id: userId },
         select: this.getUserWithProfileSelect(),
@@ -88,7 +76,7 @@ export class PrismaProfileRepository implements IProfileRepository {
         throw new NotFoundException('Usuario no encontrado después de la actualización');
       }
 
-      return user;
+      return user as UserWithProfileOutput;
     });
 
     return updatedUser;
@@ -104,13 +92,6 @@ export class PrismaProfileRepository implements IProfileRepository {
     });
   }
 
-  // ============================================
-  // 🔧 MÉTODOS PRIVADOS
-  // ============================================
-
-  /**
-   * Select para usuario con perfil
-   */
   private getUserWithProfileSelect() {
     return {
       id: true,

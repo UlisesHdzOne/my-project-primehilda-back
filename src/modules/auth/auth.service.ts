@@ -25,49 +25,37 @@ export class AuthService {
   ) {}
 
   // ============================================
-  // 🔐 AUTENTICACIÓN
+  // 🔐 REGISTRO
   // ============================================
 
-  /**
-   * Registrar nuevo usuario
-   */
   async register(registerInput: RegisterInput): Promise<RegisterOutput> {
-    // 1. Crear usuario usando el servicio de users
-    const user = await this.usersService.createUserPublic({
-      name: registerInput.name,
-      phone: registerInput.phone,
-      password: registerInput.password,
-    });
+    const user = await this.usersService.createUserPublic(registerInput);
 
-    // 2. Generar tokens
     const tokens = this.generateTokens({
       id: user.id,
       phone: user.phone,
       role: user.role,
     });
 
-    // 3. Retornar respuesta
-    // ✅ user ya es UserOutput (sin password)
     return {
       tokens,
-      user: user as AuthUserOutput, // Type assertion seguro aquí
+      user,
     };
   }
 
-  /**
-   * Login de usuario
-   */
+  // ============================================
+  // 🔐 LOGIN
+  // ============================================
+
   async login(loginInput: LoginInput): Promise<LoginOutput> {
     const { phone, password } = loginInput;
 
-    // 1. Buscar usuario con password
     const userWithPassword = await this.usersService.findWithPassword(phone);
 
     if (!userWithPassword) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    // 2. Verificar contraseña
     const isPasswordValid = await this.passwordService.comparePassword(
       password,
       userWithPassword.password,
@@ -77,15 +65,13 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    // 3. Verificar que el usuario esté activo
     if (!userWithPassword.isActive) {
       throw new UnauthorizedException('Usuario inactivo');
     }
 
-    // 4. Obtener usuario sin password (para respuesta)
+    // Usuario sin password (safe)
     const user = await this.usersService.findByPhone(phone);
 
-    // 5. Generar tokens
     const tokens = this.generateTokens({
       id: userWithPassword.id,
       phone: userWithPassword.phone,
@@ -94,52 +80,51 @@ export class AuthService {
 
     return {
       tokens,
-      user: user as AuthUserOutput,
+      user,
     };
   }
 
-  /**
-   * Validar token JWT
-   */
+  // ============================================
+  // 🔐 VALIDACIÓN DE TOKEN
+  // ============================================
+
   async validateToken(token: string): Promise<JwtPayloadComplete> {
     try {
-      const payload = this.jwtService.verify<JwtPayloadComplete>(token);
-      return payload;
+      return this.jwtService.verify<JwtPayloadComplete>(token);
     } catch (error) {
       this.logger.warn(`Token inválido: ${error}`);
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
 
-  /**
-   * Validar usuario desde payload JWT (usado por JwtStrategy)
-   */
+  // ============================================
+  // 🔐 VALIDAR USUARIO (JWT Strategy)
+  // ============================================
+
   async validateUser(payload: JwtPayload): Promise<AuthUserOutput> {
-    // Verificar que el usuario existe y está activo
     const user = await this.usersService.findById(payload.id);
 
     if (!user.isActive) {
       throw new UnauthorizedException('Usuario inactivo');
     }
 
-    return user as AuthUserOutput;
+    return user;
   }
 
-  /**
-   * Refresh token (opcional - para implementación futura)
-   */
+  // ============================================
+  // 🔐 REFRESH TOKEN
+  // ============================================
+
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     try {
       const payload = this.jwtService.verify<JwtPayloadComplete>(refreshToken);
 
-      // Verificar que el usuario existe
       const user = await this.usersService.findById(payload.id);
 
       if (!user.isActive) {
         throw new UnauthorizedException('Usuario inactivo');
       }
 
-      // Generar nuevos tokens
       return this.generateTokens({
         id: user.id,
         phone: user.phone,
@@ -152,38 +137,13 @@ export class AuthService {
   }
 
   // ============================================
-  // 🔧 MÉTODOS PRIVADOS
+  // 🔧 PRIVADOS
   // ============================================
 
-  /**
-   * Generar tokens JWT (access + refresh)
-   */
   private generateTokens(payload: JwtPayload): AuthTokens {
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '1h', // Configurar desde environment
-    });
-
-    // Refresh token (opcional - expiración más larga)
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
-    });
-
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      access_token: this.jwtService.sign(payload, { expiresIn: '1h' }),
+      refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
     };
   }
-
-  /**
-   * Verificar que el payload del JWT tiene los campos requeridos
-   */
-  //  private validatePayloadStructure(payload: unknown): payload is JwtPayload {
-  //   return (
-  //     typeof payload === 'object' &&
-  //     payload !== null &&
-  //     'id' in payload &&
-  //     'phone' in payload &&
-  //     'role' in payload
-  //   );
-  // }
 }

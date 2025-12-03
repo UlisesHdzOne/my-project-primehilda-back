@@ -3,7 +3,7 @@
 // ============================================
 
 import type {
-  UserWithProfileFromRepository,
+  UserWithProfileOutput,
   UpdateCompleteProfileInput,
   ProfileFromRepository,
   CreateProfileInput,
@@ -14,14 +14,14 @@ import type {
  */
 export interface IProfileRepository {
   // Búsquedas
-  findUserWithProfile(userId: number): Promise<UserWithProfileFromRepository | null>;
+  findUserWithProfile(userId: number): Promise<UserWithProfileOutput | null>;
   findProfileByUserId(userId: number): Promise<ProfileFromRepository | null>;
 
   // Mutaciones
   updateUserWithProfile(
     userId: number,
     data: UpdateCompleteProfileInput,
-  ): Promise<UserWithProfileFromRepository>;
+  ): Promise<UserWithProfileOutput>;
 
   createProfile(data: CreateProfileInput): Promise<ProfileFromRepository>;
 

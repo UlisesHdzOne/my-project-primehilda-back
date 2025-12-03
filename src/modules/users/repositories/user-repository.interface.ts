@@ -23,8 +23,4 @@ export interface IUserRepository {
 
   // Mutaciones
   create(userData: CreateUserInput): Promise<UserFromRepository>;
-
-  // Actualizaciones (si las necesitas)
-  // update(id: number, data: UpdateUserInput): Promise<UserFromRepository>;
-  // delete(id: number): Promise<void>;
 }

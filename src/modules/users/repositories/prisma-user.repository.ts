@@ -67,7 +67,6 @@ export class PrismaUserRepository implements IUserRepository {
   async findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null> {
     return this.prisma.user.findUnique({
       where: { phone },
-      // ✅ Aquí SÍ incluimos password
     });
   }
 
@@ -86,9 +85,6 @@ export class PrismaUserRepository implements IUserRepository {
   // 🔧 MÉTODOS PRIVADOS
   // ============================================
 
-  /**
-   * Select seguro - SIN password
-   */
   private getSafeSelect() {
     return {
       id: true,
@@ -98,25 +94,16 @@ export class PrismaUserRepository implements IUserRepository {
       isActive: true,
       createdAt: true,
       updatedAt: true,
-      // password: false (implícito)
     } as const;
   }
 
-  /**
-   * Construye cláusula WHERE para búsquedas
-   */
   private buildWhereClause(params: { search?: string; isActive?: boolean; role?: Role }) {
     const { search, isActive, role } = params;
 
     return {
       AND: [
-        // Filtro por estado activo
         isActive !== undefined ? { isActive } : {},
-
-        // Filtro por rol
         role ? { role } : {},
-
-        // Búsqueda por nombre o teléfono
         search
           ? {
               OR: [
