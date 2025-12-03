@@ -1,53 +1,36 @@
-// ============================================
-// 📁 src/modules/users/types/user.types.ts
-// ============================================
-
 import type { User, Role } from '@prisma/client';
 
-// ============================================
-// 📦 ENTITY TYPES (datos crudos desde Prisma)
-// ============================================
-
-/**
- * Usuario completo desde Prisma (incluye password)
- */
+// ENTIDAD CRUDA
 export type UserEntity = User;
 
-// ============================================
-// 🔒 SAFE TYPES (sin password)
-// ============================================
-
-/**
- * Usuario seguro para enviar al cliente
- */
+// OUTPUT SEGURO (sin password)
 export type UserSafe = Omit<UserEntity, 'password'>;
 
-/**
- * Usuario compacto para listas
- */
-export type UserListItem = Pick<UserSafe, 'id' | 'name' | 'phone'>;
-
-// ============================================
-// 📥 INPUT TYPES
-// ============================================
-
-export type CreateUserInput = {
+// INPUTS
+export type UserCreateInput = {
   name: string;
   phone: string;
-
-  // 🔐 Ahora opcional: permite crear contraseña automática
   password: string;
-
   role?: Role;
   isActive?: boolean;
 };
 
-export type UpdateUserInput = {
-  name?: string;
-  phone?: string;
+export type CreateUserByAdminInput = {
+  name: string;
+  phone: string;
+  password?: string;
   role?: Role;
   isActive?: boolean;
 };
+
+export type CreateUserPublicInput = {
+  name: string;
+  phone: string;
+  password: string;
+};
+
+// LISTAS / FILTROS
+export type UserListItem = Pick<UserSafe, 'id' | 'name' | 'phone'>;
 
 export type FindUsersInput = {
   skip?: number;
@@ -55,64 +38,24 @@ export type FindUsersInput = {
   search?: string;
   role?: Role;
   isActive?: boolean;
-
-  // 🔧 Ordenamiento seguro — solo campos de UserSafe
   orderBy?: keyof UserSafe;
   orderDirection?: 'asc' | 'desc';
 };
 
-// ============================================
-// 📤 OUTPUT TYPES
-// ============================================
+export type CountUsersParams = Pick<FindUsersInput, 'search' | 'role' | 'isActive'>;
 
-export type UserOutput = UserSafe;
+// REPOSITORIO
+export type UserWithPasswordFromRepository = UserEntity;
 
+// TYPE GUARD
+export function hasPassword(user: UserSafe | UserEntity): user is UserEntity {
+  return 'password' in user;
+}
+
+// SALIDAS
 export type UsersListOutput = {
   users: UserListItem[];
   total: number;
   page: number;
   pageSize: number;
 };
-
-// ============================================
-// 🔗 RELATION TYPES
-// ============================================
-
-/**
- * Usuario con perfil incluido
- */
-export type UserWithProfile = UserSafe & {
-  profile: {
-    id: number;
-    bio: string | null;
-    avatarUrl: string | null;
-  } | null;
-};
-
-// ============================================
-// 🗄️ REPOSITORY TYPES
-// ============================================
-
-/**
- * Usuario desde repositorio sin password
- */
-export type UserFromRepository = UserSafe;
-
-/**
- * Usuario desde repositorio CON password
- * (solo para login y auth)
- */
-export type UserWithPasswordFromRepository = UserEntity;
-
-/**
- * Parámetros para "count"
- */
-export type CountUsersParams = Pick<FindUsersInput, 'search' | 'role' | 'isActive'>;
-
-// ============================================
-// 🏷️ TYPE GUARDS
-// ============================================
-
-export function hasPassword(user: UserSafe | UserEntity): user is UserEntity {
-  return 'password' in user;
-}

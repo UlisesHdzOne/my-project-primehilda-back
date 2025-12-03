@@ -1,7 +1,3 @@
-// ============================================
-// 📁 src/modules/users/users.controller.ts
-// ============================================
-
 import {
   Body,
   Controller,
@@ -29,7 +25,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UsersListResponseDto } from './dto/users-list-response.dto';
 
 // Types
-import type { CreateUserInput, FindUsersInput } from './types/user.types';
+import type { CreateUserByAdminInput, FindUsersInput } from './types/user.types';
 
 @UseInterceptors(ResponseInterceptor)
 @Controller('users')
@@ -40,33 +36,23 @@ export class UsersController {
   // 🔐 ENDPOINTS ADMIN
   // ============================================
 
-  /**
-   * POST /users/admin/create
-   * Crear usuario (solo admin)
-   *
-   * FLUJO:
-   * 1. DTO valida los datos de entrada
-   * 2. Controller convierte DTO → Type
-   * 3. Service procesa y retorna Type
-   * 4. Controller serializa Type → DTO
-   */
   @Post('admin/create')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   async createByAdmin(@Body() dto: CreateUserByAdminDto): Promise<UserResponseDto> {
-    // ✅ Conversión DTO → Type (adaptador)
-    const input: CreateUserInput = {
+    // DTO → Type (password opcional)
+    const input: CreateUserByAdminInput = {
       name: dto.name,
       phone: dto.phone,
-      password: dto.password ?? '', // El service genera si es vacío
+      password: dto.password, // Puede ser undefined, el service lo generará
       role: dto.role,
       isActive: dto.isActive,
     };
 
-    // ✅ Llamada al servicio (trabaja con types)
+    // Llamada al servicio
     const user = await this.usersService.createUserByAdmin(input);
 
-    // ✅ Serialización Type → DTO
+    // Type → DTO
     return plainToInstance(UserResponseDto, user, {
       excludeExtraneousValues: true,
     });
@@ -76,14 +62,9 @@ export class UsersController {
   // 👤 ENDPOINTS AUTENTICADOS
   // ============================================
 
-  /**
-   * GET /users
-   * Listar usuarios con filtros
-   */
   @Get()
   @UseGuards(JwtAuthGuard)
   async findUsers(@Query() queryDto: FindUsersQueryDto): Promise<UsersListResponseDto> {
-    // ✅ Conversión DTO → Type
     const input: FindUsersInput = {
       skip: queryDto.skip,
       take: queryDto.take,
@@ -94,41 +75,25 @@ export class UsersController {
       orderDirection: queryDto.orderDirection,
     };
 
-    // ✅ Llamada al servicio
     const result = await this.usersService.findUsers(input);
 
-    // ✅ Serialización Type → DTO
     return plainToInstance(UsersListResponseDto, result, {
       excludeExtraneousValues: true,
     });
   }
 
-  /**
-   * GET /users/:id
-   * Obtener usuario por ID
-   */
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
     const user = await this.usersService.findById(id);
-
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
+    return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
   }
 
-  /**
-   * GET /users/phone/:phone
-   * Buscar por teléfono
-   */
   @Get('phone/:phone')
   @UseGuards(JwtAuthGuard)
   async findByPhone(@Param('phone') phone: string): Promise<UserResponseDto> {
     const user = await this.usersService.findByPhone(phone);
-
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
+    return plainToInstance(UserResponseDto, user, { excludeExtraneousValues: true });
   }
 
   // ============================================

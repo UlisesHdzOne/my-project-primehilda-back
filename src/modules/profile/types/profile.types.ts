@@ -1,13 +1,6 @@
-// ============================================
-// 📁 src/modules/profile/types/profile.types.ts
-// ============================================
+import type { UserSafe } from '../../users/types/user.types';
 
-import type { UserWithProfile } from '../../users/types/user.types';
-
-// ============================================
-// 📦 ENTITY TYPES (datos crudos)
-// ============================================
-
+// ENTIDAD DE PERFIL
 export type UserProfileEntity = {
   id: number;
   userId: number;
@@ -15,10 +8,7 @@ export type UserProfileEntity = {
   avatarUrl: string | null;
 };
 
-// ============================================
-// 🔒 SAFE TYPES
-// ============================================
-
+// SAFE TYPES
 export type ProfileSafe = UserProfileEntity;
 
 export type ProfilePublic = {
@@ -27,10 +17,7 @@ export type ProfilePublic = {
   avatarUrl: string | null;
 };
 
-// ============================================
-// 📥 INPUT TYPES
-// ============================================
-
+// INPUT TYPES
 export type UpdateCompleteProfileInput = {
   name?: string;
   bio?: string | null;
@@ -43,24 +30,16 @@ export type CreateProfileInput = {
   avatarUrl?: string | null;
 };
 
-// ============================================
-// 📤 OUTPUT TYPES
-// ============================================
-
+// OUTPUT TYPES
 export type ProfileOutput = ProfilePublic;
 
-export type UserWithProfileOutput = UserWithProfile;
+// 🔗 Usuario con perfil (solo aquí)
+export type UserWithProfileOutput = UserSafe & { profile?: UserProfileEntity | null };
 
-// ============================================
-// 🗄️ REPOSITORY TYPES
-// ============================================
-
+// REPOSITORIO TYPES
 export type ProfileFromRepository = UserProfileEntity;
 
-// ============================================
-// 🏷️ TYPE GUARDS
-// ============================================
-
+// TYPE GUARDS
 export function hasProfile(user: UserWithProfileOutput): boolean {
   return !!user.profile;
 }

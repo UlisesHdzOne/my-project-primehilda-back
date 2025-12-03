@@ -104,6 +104,7 @@ export class PrismaProfileRepository implements IProfileRepository {
       profile: {
         select: {
           id: true,
+          userId: true,
           bio: true,
           avatarUrl: true,
         },

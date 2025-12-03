@@ -1,26 +1,23 @@
 import type {
-  CreateUserInput,
+  UserSafe,
   FindUsersInput,
-  UserFromRepository,
-  UserWithPasswordFromRepository,
   CountUsersParams,
+  UserWithPasswordFromRepository,
+  UserCreateInput,
 } from '../types/user.types';
 
-/**
- * Contrato del repositorio de usuarios
- */
 export interface IUserRepository {
-  // Búsquedas sin password
-  findByPhone(phone: string): Promise<UserFromRepository | null>;
-  findById(id: number): Promise<UserFromRepository | null>;
-  findMany(params: FindUsersInput): Promise<UserFromRepository[]>;
+  // Búsquedas
+  findByPhone(phone: string): Promise<UserSafe | null>;
+  findById(id: number): Promise<UserSafe | null>;
+  findMany(params: FindUsersInput): Promise<UserSafe[]>;
 
   // Conteo
   count(params: CountUsersParams): Promise<number>;
 
-  // Búsqueda con password (solo auth)
+  // Autenticación
   findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null>;
 
-  // Mutaciones
-  create(userData: CreateUserInput): Promise<UserFromRepository>;
+  // Creación
+  create(userData: UserCreateInput): Promise<UserSafe>;
 }
