@@ -1,6 +1,7 @@
 import type { Role } from '@prisma/client';
 
-export interface UserSafe {
+// Tipo completo para detalle
+export interface UserResponse {
   id: number;
   name: string;
   phone: string;
@@ -10,24 +11,21 @@ export interface UserSafe {
   updatedAt: Date;
 }
 
-export interface UserWithPasswordFromRepository {
-  id: number;
-  name: string;
-  phone: string;
+// Tipo optimizado para listados
+export type UserListResponse = Omit<UserResponse, 'createdAt' | 'updatedAt'>;
+
+// Tipo con password
+export interface UserWithPasswordFromRepository extends UserResponse {
   password: string;
-  role: Role;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
+// Inputs
 export interface FindUsersInput {
   skip?: number;
   take?: number;
   search?: string;
   role?: Role;
   isActive?: boolean;
-
   orderBy?: 'id' | 'name' | 'phone' | 'createdAt' | 'updatedAt';
   orderDirection?: 'asc' | 'desc';
 }
@@ -58,8 +56,9 @@ export interface CreateUserPublicInput {
   password: string;
 }
 
+// Outputs
 export interface UsersListOutput {
-  users: Array<Pick<UserSafe, 'id' | 'name' | 'phone'>>;
+  users: UserListResponse[];
   total: number;
   page: number;
   pageSize: number;

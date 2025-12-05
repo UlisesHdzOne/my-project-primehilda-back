@@ -12,7 +12,8 @@ export interface UserProfileEntity {
   avatarUrl: string | null;
 }
 
-export type ProfilePublic = Pick<UserProfileEntity, 'id' | 'bio' | 'avatarUrl'>;
+// Tipo público (para listas o público)
+export type ProfilePublicResponse = Pick<UserProfileEntity, 'id' | 'bio' | 'avatarUrl'>;
 
 // ======================
 // 🟡 INPUTS
@@ -32,8 +33,12 @@ export interface CreateProfileInput {
 // ======================
 // 🔵 OUTPUTS
 // ======================
-export type UserWithProfileOutput = UserSafe & { profile?: UserProfileEntity | null };
-export type ProfileOutput = ProfilePublic;
+export type UserWithProfileResponse = UserSafe & { profile?: UserProfileEntity | null };
+
+// Tipo optimizado para listados (sin timestamps)
+export type UserListWithProfileResponse = Omit<UserSafe, 'createdAt' | 'updatedAt'> & {
+  profile?: ProfilePublicResponse | null;
+};
 
 // ======================
 // 🏗️ REPOSITORY
@@ -43,7 +48,7 @@ export type ProfileFromRepository = UserProfileEntity;
 // ======================
 // ⚡ TYPE GUARDS
 // ======================
-export function hasProfile(user: UserWithProfileOutput): boolean {
+export function hasProfile(user: UserWithProfileResponse): boolean {
   return !!user.profile;
 }
 

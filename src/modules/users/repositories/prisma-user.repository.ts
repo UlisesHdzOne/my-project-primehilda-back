@@ -3,7 +3,8 @@ import { PrismaService } from '@/database/prisma.service';
 import type { IUserRepository } from './user-repository.interface';
 import type {
   FindUsersInput,
-  UserSafe,
+  UserResponse,
+  UserListResponse,
   UserWithPasswordFromRepository,
   CountUsersParams,
   UserCreateInput,
@@ -14,39 +15,27 @@ import { Role } from '@prisma/client';
 export class PrismaUserRepository implements IUserRepository {
   constructor(private prisma: PrismaService) {}
 
-  // ========================= BÚSQUEDAS =========================
-
-  async findByPhone(phone: string): Promise<UserSafe | null> {
+  async findByPhone(phone: string): Promise<UserResponse | null> {
     return this.prisma.user.findUnique({
       where: { phone },
-      select: this.safeSelect(),
+      select: this.detailSelect(),
     });
   }
 
-  async findById(id: number): Promise<UserSafe | null> {
+  async findById(id: number): Promise<UserResponse | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      select: this.safeSelect(),
+      select: this.detailSelect(),
     });
   }
 
-  async findMany(params: FindUsersInput): Promise<UserSafe[]> {
-    const {
-      skip = 0,
-      take = 10,
-      search,
-      isActive,
-      role,
-      orderBy = 'createdAt',
-      orderDirection = 'desc',
-    } = params;
-
+  async findMany(params: FindUsersInput): Promise<UserListResponse[]> {
     return this.prisma.user.findMany({
-      skip,
-      take,
-      where: this.buildWhere({ search, isActive, role }),
-      orderBy: { [orderBy]: orderDirection },
-      select: this.safeSelect(),
+      skip: params.skip ?? 0,
+      take: params.take ?? 10,
+      where: this.buildWhere(params),
+      orderBy: { [params.orderBy ?? 'createdAt']: params.orderDirection ?? 'desc' },
+      select: this.listSelect(),
     });
   }
 
@@ -59,21 +48,27 @@ export class PrismaUserRepository implements IUserRepository {
   async findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null> {
     return this.prisma.user.findUnique({
       where: { phone },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        password: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
-  // ========================= CREACIÓN =========================
-
-  async create(data: UserCreateInput): Promise<UserSafe> {
+  async create(data: UserCreateInput): Promise<UserResponse> {
     return this.prisma.user.create({
       data,
-      select: this.safeSelect(),
+      select: this.detailSelect(),
     });
   }
 
-  // ========================= PRIVADOS =========================
-
-  private safeSelect() {
+  private detailSelect() {
     return {
       id: true,
       name: true,
@@ -85,9 +80,18 @@ export class PrismaUserRepository implements IUserRepository {
     } as const;
   }
 
+  private listSelect() {
+    return {
+      id: true,
+      name: true,
+      phone: true,
+      role: true,
+      isActive: true,
+    } as const;
+  }
+
   private buildWhere(params: { search?: string; isActive?: boolean; role?: Role }) {
     const { search, isActive, role } = params;
-
     return {
       AND: [
         isActive !== undefined ? { isActive } : {},

@@ -1,17 +1,17 @@
 import type {
-  UserWithProfileOutput,
+  UserWithProfileResponse,
   UpdateCompleteProfileInput,
   ProfileFromRepository,
   CreateProfileInput,
 } from '../types/profile.types';
 
 export interface IProfileRepository {
-  findUserWithProfile(userId: number): Promise<UserWithProfileOutput | null>;
+  findUserWithProfile(userId: number): Promise<UserWithProfileResponse | null>;
   findProfileByUserId(userId: number): Promise<ProfileFromRepository | null>;
   updateUserWithProfile(
     userId: number,
     data: UpdateCompleteProfileInput,
-  ): Promise<UserWithProfileOutput>;
+  ): Promise<UserWithProfileResponse>;
   createProfile(data: CreateProfileInput): Promise<ProfileFromRepository>;
   profileExists(userId: number): Promise<boolean>;
 }

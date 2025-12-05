@@ -1,5 +1,6 @@
 import type {
-  UserSafe,
+  UserResponse,
+  UserListResponse,
   FindUsersInput,
   CountUsersParams,
   UserWithPasswordFromRepository,
@@ -7,13 +8,10 @@ import type {
 } from '../types/user.types';
 
 export interface IUserRepository {
-  findByPhone(phone: string): Promise<UserSafe | null>;
-  findById(id: number): Promise<UserSafe | null>;
-  findMany(params: FindUsersInput): Promise<UserSafe[]>;
-
+  findByPhone(phone: string): Promise<UserResponse | null>;
+  findById(id: number): Promise<UserResponse | null>;
+  findMany(params: FindUsersInput): Promise<UserListResponse[]>;
   count(params: CountUsersParams): Promise<number>;
-
   findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null>;
-
-  create(data: UserCreateInput): Promise<UserSafe>;
+  create(data: UserCreateInput): Promise<UserResponse>;
 }

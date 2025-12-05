@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { IProfileRepository } from './profile-repository.interface';
 import type {
-  UserWithProfileOutput,
+  UserWithProfileResponse,
   UpdateCompleteProfileInput,
   ProfileFromRepository,
   CreateProfileInput,
@@ -12,10 +12,10 @@ import type {
 export class PrismaProfileRepository implements IProfileRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findUserWithProfile(userId: number): Promise<UserWithProfileOutput | null> {
+  async findUserWithProfile(userId: number): Promise<UserWithProfileResponse | null> {
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: this.getUserWithProfileSelect(),
+      select: this.userWithProfileSelect(),
     });
   }
 
@@ -31,7 +31,7 @@ export class PrismaProfileRepository implements IProfileRepository {
   async updateUserWithProfile(
     userId: number,
     data: UpdateCompleteProfileInput,
-  ): Promise<UserWithProfileOutput> {
+  ): Promise<UserWithProfileResponse> {
     return this.prisma.$transaction(async tx => {
       const userExists = await tx.user.findUnique({ where: { id: userId } });
       if (!userExists) throw new NotFoundException('Usuario no encontrado');
@@ -57,11 +57,11 @@ export class PrismaProfileRepository implements IProfileRepository {
 
       const updatedUser = await tx.user.findUnique({
         where: { id: userId },
-        select: this.getUserWithProfileSelect(),
+        select: this.userWithProfileSelect(),
       });
 
       if (!updatedUser) throw new NotFoundException('Usuario no encontrado después de actualizar');
-      return updatedUser as UserWithProfileOutput;
+      return updatedUser as UserWithProfileResponse;
     });
   }
 
@@ -71,7 +71,7 @@ export class PrismaProfileRepository implements IProfileRepository {
     });
   }
 
-  private getUserWithProfileSelect() {
+  private userWithProfileSelect() {
     return {
       id: true,
       name: true,

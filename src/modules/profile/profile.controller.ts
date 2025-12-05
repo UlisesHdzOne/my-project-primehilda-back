@@ -18,12 +18,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
 
-// DTOs
 import { UpdateCompleteProfileDto } from './dto/update-complete-profile.dto';
 import { UserWithProfileResponseDto } from './dto/user-with-profile-response.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
-
-// Types
 import type { UpdateCompleteProfileInput } from './types/profile.types';
 
 @UseInterceptors(ResponseInterceptor)
@@ -31,10 +28,6 @@ import type { UpdateCompleteProfileInput } from './types/profile.types';
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
-
-  // ============================================
-  // 👤 PERFIL DEL USUARIO ACTUAL
-  // ============================================
 
   @Get()
   async getMyCompleteProfile(@User('id') userId: number) {
@@ -51,20 +44,12 @@ export class ProfileController {
     });
   }
 
-  // ============================================
-  // 🔍 PERFIL PÚBLICO DE OTROS USUARIOS
-  // ============================================
-
   @Get('user/:id')
   async getUserPublicProfile(@Param('id', ParseIntPipe) userId: number) {
     const profile = await this.profileService.getPublicProfile(userId);
     if (!profile) return { message: 'El usuario no tiene perfil público' };
     return plainToInstance(ProfileResponseDto, profile, { excludeExtraneousValues: true });
   }
-
-  // ============================================
-  // 🔐 ADMINISTRADOR GESTIONANDO PERFILES
-  // ============================================
 
   @Get('users/:id')
   @UseGuards(RolesGuard)

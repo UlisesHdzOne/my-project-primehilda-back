@@ -3,8 +3,7 @@ import type { Role, User } from '@prisma/client';
 // ======================
 // 🟢 USER TYPES
 // ======================
-export type UserSafe = Omit<User, 'password'>;
-export type AuthUserOutput = UserSafe;
+export type AuthUserResponse = Omit<User, 'password' | 'createdAt' | 'updatedAt'>;
 
 // ======================
 // 🔑 JWT PAYLOAD
@@ -23,7 +22,7 @@ export interface JwtPayloadComplete extends JwtPayload {
 // ======================
 // 🔐 TOKENS
 // ======================
-export interface AuthTokens {
+export interface AuthTokensResponse {
   access_token: string;
   refresh_token?: string;
 }
@@ -43,31 +42,12 @@ export interface RegisterInput {
   role?: Role;
 }
 
-export interface RefreshTokenInput {
-  refresh_token: string;
-}
-
-export interface ValidateTokenInput {
-  token: string;
-}
-
 // ======================
 // 📝 OUTPUT TYPES
 // ======================
-export interface LoginOutput {
-  tokens: AuthTokens;
-  user: AuthUserOutput;
-}
-
-export type RegisterOutput = LoginOutput;
-
-export interface RefreshTokenOutput {
-  tokens: AuthTokens;
-}
-
-export interface ValidateTokenOutput {
-  isValid: boolean;
-  payload?: JwtPayloadComplete;
+export interface AuthResponse {
+  user: AuthUserResponse;
+  tokens: AuthTokensResponse;
 }
 
 // ======================

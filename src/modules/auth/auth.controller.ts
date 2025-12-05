@@ -20,9 +20,6 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto, AuthTokensDto } from './dto/auth-response.dto';
-
-// Types
-import type { LoginInput, RegisterInput } from './types/auth.types';
 import type { RequestUser } from '@/common/interfaces/request-user.interface';
 
 @UseInterceptors(ResponseInterceptor)
@@ -33,30 +30,28 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
-    const input: RegisterInput = { name: dto.name, phone: dto.phone, password: dto.password };
-    const result = await this.authService.register(input);
+    const result = await this.authService.register(dto);
     return plainToInstance(AuthResponseDto, result, { excludeExtraneousValues: true });
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
-    const input: LoginInput = { phone: dto.phone, password: dto.password };
-    const result = await this.authService.login(input);
+    const result = await this.authService.login(dto);
     return plainToInstance(AuthResponseDto, result, { excludeExtraneousValues: true });
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body() dto: RefreshTokenDto): Promise<{ tokens: AuthResponseDto['tokens'] }> {
+  async refreshToken(@Body() dto: RefreshTokenDto): Promise<AuthTokensDto> {
     const tokens = await this.authService.refreshToken(dto.refresh_token);
-    return { tokens: plainToInstance(AuthTokensDto, tokens, { excludeExtraneousValues: true }) };
+    return plainToInstance(AuthTokensDto, tokens, { excludeExtraneousValues: true });
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getMe(@User() user: RequestUser): Promise<{ user: RequestUser }> {
-    return { user };
+  async getMe(@User() user: RequestUser): Promise<RequestUser> {
+    return user;
   }
 
   @Post('logout')

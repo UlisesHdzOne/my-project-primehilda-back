@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
-import type { JwtPayload, AuthUserOutput } from '../types/auth.types';
+import type { JwtPayload, AuthUserResponse } from '../types/auth.types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -18,19 +18,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  /**
-   * Validar payload del JWT
-   * Este método se llama automáticamente después de verificar el token
-   */
-  async validate(payload: JwtPayload): Promise<AuthUserOutput> {
-    // Validar que el usuario existe y está activo
-    const user = await this.authService.validateUser(payload);
+  async validate(payload: JwtPayload): Promise<AuthUserResponse> {
+    const user = await this.authService['usersService'].findById(payload.id);
 
-    if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Usuario no encontrado o inactivo');
     }
 
-    // Este objeto se añadirá a request.user
+    // Devuelve directamente el usuario seguro
     return user;
   }
 }
