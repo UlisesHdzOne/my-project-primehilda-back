@@ -1,7 +1,3 @@
-// ============================================
-// 📁 src/modules/users/dto/users-list-response.dto.ts
-// ============================================
-
 import { Expose, Type } from 'class-transformer';
 
 /**

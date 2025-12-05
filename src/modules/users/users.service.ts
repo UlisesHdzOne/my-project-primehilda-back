@@ -7,7 +7,9 @@ import type {
   CreateUserByAdminInput,
   UserCreateInput,
   CreateUserPublicInput,
+  UserWithPasswordFromRepository,
 } from './types/user.types';
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -72,7 +74,7 @@ export class UsersService {
     return this.repo.create(input);
   }
 
-  async findWithPassword(phone: string) {
+  async findWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null> {
     return this.repo.findByPhoneWithPassword(phone);
   }
 

@@ -36,6 +36,7 @@ export class AuthService {
   }
 
   async login(input: LoginInput): Promise<LoginOutput> {
+    // ✅ 1 sola consulta con password
     const userWithPassword = await this.usersService.findWithPassword(input.phone);
     if (!userWithPassword) throw new UnauthorizedException('Credenciales inválidas');
 
@@ -46,7 +47,8 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Credenciales inválidas');
     if (!userWithPassword.isActive) throw new UnauthorizedException('Usuario inactivo');
 
-    const user = await this.usersService.findByPhone(input.phone);
+    // ✅ Extraer password del objeto (sin hacer otra consulta)
+    const { password: _, ...user } = userWithPassword;
 
     const tokens = this.generateTokens({
       id: userWithPassword.id,
