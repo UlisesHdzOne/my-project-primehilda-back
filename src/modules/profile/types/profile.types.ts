@@ -1,46 +1,48 @@
-import type { UserSafe } from '../../users/types/user.types';
+import type { User } from '@prisma/client';
 
-/**
- * Entidad cruda
- */
-export type UserProfileEntity = {
+// ======================
+// 🟢 ENTIDADES / SAFES
+// ======================
+export type UserSafe = Omit<User, 'password'>;
+
+export interface UserProfileEntity {
   id: number;
   userId: number;
   bio: string | null;
   avatarUrl: string | null;
-};
+}
 
-/**
- * Safe / Public Types
- */
-export type ProfileSafe = UserProfileEntity;
 export type ProfilePublic = Pick<UserProfileEntity, 'id' | 'bio' | 'avatarUrl'>;
 
-/**
- * Input Types
- */
-export type UpdateCompleteProfileInput = {
+// ======================
+// 🟡 INPUTS
+// ======================
+export interface UpdateCompleteProfileInput {
   name?: string;
   bio?: string | null;
   avatarUrl?: string | null;
-};
+}
 
-export type CreateProfileInput = { userId: number; bio?: string | null; avatarUrl?: string | null };
+export interface CreateProfileInput {
+  userId: number;
+  bio?: string | null;
+  avatarUrl?: string | null;
+}
 
-/**
- * Output Types
- */
+// ======================
+// 🔵 OUTPUTS
+// ======================
+export type UserWithProfileOutput = UserSafe & { profile?: UserProfileEntity | null };
 export type ProfileOutput = ProfilePublic;
-export type UserWithProfileOutput = UserSafe & { profile?: ProfileSafe | null };
 
-/**
- * Repository
- */
+// ======================
+// 🏗️ REPOSITORY
+// ======================
 export type ProfileFromRepository = UserProfileEntity;
 
-/**
- * Type Guards
- */
+// ======================
+// ⚡ TYPE GUARDS
+// ======================
 export function hasProfile(user: UserWithProfileOutput): boolean {
   return !!user.profile;
 }

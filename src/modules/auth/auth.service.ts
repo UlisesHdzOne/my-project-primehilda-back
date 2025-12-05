@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PasswordService } from '@/common/services/password.service';
-
 import type {
   LoginInput,
   LoginOutput,
@@ -19,17 +18,13 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
-    private passwordService: PasswordService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly passwordService: PasswordService,
   ) {}
 
-  // ============================================
-  // 🔐 REGISTRO
-  // ============================================
-
-  async register(registerInput: RegisterInput): Promise<RegisterOutput> {
-    const user = await this.usersService.createUserPublic(registerInput);
+  async register(input: RegisterInput): Promise<RegisterOutput> {
+    const user = await this.usersService.createUserPublic(input);
 
     const tokens = this.generateTokens({
       id: user.id,
@@ -37,40 +32,21 @@ export class AuthService {
       role: user.role,
     });
 
-    return {
-      tokens,
-      user,
-    };
+    return { tokens, user };
   }
 
-  // ============================================
-  // 🔐 LOGIN
-  // ============================================
+  async login(input: LoginInput): Promise<LoginOutput> {
+    const userWithPassword = await this.usersService.findWithPassword(input.phone);
+    if (!userWithPassword) throw new UnauthorizedException('Credenciales inválidas');
 
-  async login(loginInput: LoginInput): Promise<LoginOutput> {
-    const { phone, password } = loginInput;
-
-    const userWithPassword = await this.usersService.findWithPassword(phone);
-
-    if (!userWithPassword) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    const isPasswordValid = await this.passwordService.comparePassword(
-      password,
+    const valid = await this.passwordService.comparePassword(
+      input.password,
       userWithPassword.password,
     );
+    if (!valid) throw new UnauthorizedException('Credenciales inválidas');
+    if (!userWithPassword.isActive) throw new UnauthorizedException('Usuario inactivo');
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    if (!userWithPassword.isActive) {
-      throw new UnauthorizedException('Usuario inactivo');
-    }
-
-    // Usuario sin password (safe)
-    const user = await this.usersService.findByPhone(phone);
+    const user = await this.usersService.findByPhone(input.phone);
 
     const tokens = this.generateTokens({
       id: userWithPassword.id,
@@ -78,15 +54,8 @@ export class AuthService {
       role: userWithPassword.role,
     });
 
-    return {
-      tokens,
-      user,
-    };
+    return { tokens, user };
   }
-
-  // ============================================
-  // 🔐 VALIDACIÓN DE TOKEN
-  // ============================================
 
   async validateToken(token: string): Promise<JwtPayloadComplete> {
     try {
@@ -97,33 +66,17 @@ export class AuthService {
     }
   }
 
-  // ============================================
-  // 🔐 VALIDAR USUARIO (JWT Strategy)
-  // ============================================
-
   async validateUser(payload: JwtPayload): Promise<AuthUserOutput> {
     const user = await this.usersService.findById(payload.id);
-
-    if (!user.isActive) {
-      throw new UnauthorizedException('Usuario inactivo');
-    }
-
+    if (!user.isActive) throw new UnauthorizedException('Usuario inactivo');
     return user;
   }
-
-  // ============================================
-  // 🔐 REFRESH TOKEN
-  // ============================================
 
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     try {
       const payload = this.jwtService.verify<JwtPayloadComplete>(refreshToken);
-
       const user = await this.usersService.findById(payload.id);
-
-      if (!user.isActive) {
-        throw new UnauthorizedException('Usuario inactivo');
-      }
+      if (!user.isActive) throw new UnauthorizedException('Usuario inactivo');
 
       return this.generateTokens({
         id: user.id,
@@ -135,10 +88,6 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token inválido o expirado');
     }
   }
-
-  // ============================================
-  // 🔧 PRIVADOS
-  // ============================================
 
   private generateTokens(payload: JwtPayload): AuthTokens {
     return {

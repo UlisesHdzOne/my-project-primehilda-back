@@ -1,64 +1,66 @@
 import type { Role } from '@prisma/client';
-import type { UserBase } from 'shared/types/base.types';
 
-/**
- * Safe Output (sin password)
- */
-export type UserSafe = Omit<UserBase, 'password'>;
+export interface UserSafe {
+  id: number;
+  name: string;
+  phone: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-/**
- * Input Types
- */
-export type UserCreateInput = {
+export interface UserWithPasswordFromRepository {
+  id: number;
   name: string;
   phone: string;
   password: string;
-  role?: Role;
-  isActive?: boolean;
-};
+  role: Role;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-/**
- * Diferentes flujos de creación
- */
-export type CreateUserByAdminInput = Omit<UserCreateInput, 'password'> & { password?: string };
-export type CreateUserPublicInput = Pick<UserCreateInput, 'name' | 'phone' | 'password'>;
-
-/**
- * List / Filter
- */
-export type UserListItem = Pick<UserSafe, 'id' | 'name' | 'phone'>;
-export type FindUsersInput = {
+export interface FindUsersInput {
   skip?: number;
   take?: number;
   search?: string;
   role?: Role;
   isActive?: boolean;
-  orderBy?: keyof UserSafe;
+
+  orderBy?: 'id' | 'name' | 'phone' | 'createdAt' | 'updatedAt';
   orderDirection?: 'asc' | 'desc';
-};
-export type CountUsersParams = Pick<FindUsersInput, 'search' | 'role' | 'isActive'>;
-
-/**
- * Repository type (con password)
- */
-export type UserWithPasswordFromRepository = Pick<
-  UserBase,
-  'id' | 'phone' | 'password' | 'isActive' | 'role'
->;
-
-/**
- * Type Guards
- */
-export function hasPassword(user: UserSafe | UserBase): user is UserBase {
-  return 'password' in user;
 }
 
-/**
- * Output
- */
-export type UsersListOutput = {
-  users: UserListItem[];
+export interface CountUsersParams {
+  search?: string;
+  role?: Role;
+  isActive?: boolean;
+}
+
+export interface UserCreateInput {
+  name: string;
+  phone: string;
+  password: string;
+  role: Role;
+}
+
+export interface CreateUserByAdminInput {
+  name: string;
+  phone: string;
+  password?: string;
+  role?: Role;
+}
+
+export interface CreateUserPublicInput {
+  name: string;
+  phone: string;
+  password: string;
+}
+
+export interface UsersListOutput {
+  users: Array<Pick<UserSafe, 'id' | 'name' | 'phone'>>;
   total: number;
   page: number;
   pageSize: number;
-};
+}

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
-import type { IProfileRepository } from './profile-repository.interface';
+import { IProfileRepository } from './profile-repository.interface';
 import type {
   UserWithProfileOutput,
   UpdateCompleteProfileInput,
@@ -10,7 +10,7 @@ import type {
 
 @Injectable()
 export class PrismaProfileRepository implements IProfileRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async findUserWithProfile(userId: number): Promise<UserWithProfileOutput | null> {
     return this.prisma.user.findUnique({
@@ -20,15 +20,11 @@ export class PrismaProfileRepository implements IProfileRepository {
   }
 
   async findProfileByUserId(userId: number): Promise<ProfileFromRepository | null> {
-    return this.prisma.userProfile.findUnique({
-      where: { userId },
-    });
+    return this.prisma.userProfile.findUnique({ where: { userId } });
   }
 
   async profileExists(userId: number): Promise<boolean> {
-    const count = await this.prisma.userProfile.count({
-      where: { userId },
-    });
+    const count = await this.prisma.userProfile.count({ where: { userId } });
     return count > 0;
   }
 
@@ -36,20 +32,12 @@ export class PrismaProfileRepository implements IProfileRepository {
     userId: number,
     data: UpdateCompleteProfileInput,
   ): Promise<UserWithProfileOutput> {
-    const updatedUser = await this.prisma.$transaction(async tx => {
-      const existingUser = await tx.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!existingUser) {
-        throw new NotFoundException('Usuario no encontrado');
-      }
+    return this.prisma.$transaction(async tx => {
+      const userExists = await tx.user.findUnique({ where: { id: userId } });
+      if (!userExists) throw new NotFoundException('Usuario no encontrado');
 
       if (data.name !== undefined) {
-        await tx.user.update({
-          where: { id: userId },
-          data: { name: data.name },
-        });
+        await tx.user.update({ where: { id: userId }, data: { name: data.name } });
       }
 
       if (data.bio !== undefined || data.avatarUrl !== undefined) {
@@ -67,28 +55,19 @@ export class PrismaProfileRepository implements IProfileRepository {
         });
       }
 
-      const user = await tx.user.findUnique({
+      const updatedUser = await tx.user.findUnique({
         where: { id: userId },
         select: this.getUserWithProfileSelect(),
       });
 
-      if (!user) {
-        throw new NotFoundException('Usuario no encontrado después de la actualización');
-      }
-
-      return user as UserWithProfileOutput;
+      if (!updatedUser) throw new NotFoundException('Usuario no encontrado después de actualizar');
+      return updatedUser as UserWithProfileOutput;
     });
-
-    return updatedUser;
   }
 
   async createProfile(data: CreateProfileInput): Promise<ProfileFromRepository> {
     return this.prisma.userProfile.create({
-      data: {
-        userId: data.userId,
-        bio: data.bio ?? null,
-        avatarUrl: data.avatarUrl ?? null,
-      },
+      data: { userId: data.userId, bio: data.bio ?? null, avatarUrl: data.avatarUrl ?? null },
     });
   }
 
@@ -101,14 +80,7 @@ export class PrismaProfileRepository implements IProfileRepository {
       isActive: true,
       createdAt: true,
       updatedAt: true,
-      profile: {
-        select: {
-          id: true,
-          userId: true,
-          bio: true,
-          avatarUrl: true,
-        },
-      },
+      profile: { select: { id: true, userId: true, bio: true, avatarUrl: true } },
     } as const;
   }
 }

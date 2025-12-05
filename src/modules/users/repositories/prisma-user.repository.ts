@@ -14,27 +14,22 @@ import { Role } from '@prisma/client';
 export class PrismaUserRepository implements IUserRepository {
   constructor(private prisma: PrismaService) {}
 
-  // ============================================
-  // 🔍 BÚSQUEDAS
-  // ============================================
+  // ========================= BÚSQUEDAS =========================
 
-  /** Buscar usuario por teléfono (sin password) */
   async findByPhone(phone: string): Promise<UserSafe | null> {
     return this.prisma.user.findUnique({
       where: { phone },
-      select: this.getSafeSelect(),
+      select: this.safeSelect(),
     });
   }
 
-  /** Buscar usuario por ID (sin password) */
   async findById(id: number): Promise<UserSafe | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      select: this.getSafeSelect(),
+      select: this.safeSelect(),
     });
   }
 
-  /** Buscar múltiples usuarios con filtros y paginación */
   async findMany(params: FindUsersInput): Promise<UserSafe[]> {
     const {
       skip = 0,
@@ -49,42 +44,36 @@ export class PrismaUserRepository implements IUserRepository {
     return this.prisma.user.findMany({
       skip,
       take,
-      where: this.buildWhereClause({ search, isActive, role }),
+      where: this.buildWhere({ search, isActive, role }),
       orderBy: { [orderBy]: orderDirection },
-      select: this.getSafeSelect(),
+      select: this.safeSelect(),
     });
   }
 
-  /** Contar usuarios según filtros */
   async count(params: CountUsersParams): Promise<number> {
     return this.prisma.user.count({
-      where: this.buildWhereClause(params),
+      where: this.buildWhere(params),
     });
   }
 
-  /** Buscar usuario con password (para auth) */
   async findByPhoneWithPassword(phone: string): Promise<UserWithPasswordFromRepository | null> {
-    return this.prisma.user.findUnique({ where: { phone } });
-  }
-
-  // ============================================
-  // ✏️ MUTACIONES
-  // ============================================
-
-  /** Crear usuario */
-  async create(userData: UserCreateInput): Promise<UserSafe> {
-    return this.prisma.user.create({
-      data: userData,
-      select: this.getSafeSelect(),
+    return this.prisma.user.findUnique({
+      where: { phone },
     });
   }
 
-  // ============================================
-  // 🔧 MÉTODOS PRIVADOS
-  // ============================================
+  // ========================= CREACIÓN =========================
 
-  /** Campos seguros que siempre se retornan sin password */
-  private getSafeSelect() {
+  async create(data: UserCreateInput): Promise<UserSafe> {
+    return this.prisma.user.create({
+      data,
+      select: this.safeSelect(),
+    });
+  }
+
+  // ========================= PRIVADOS =========================
+
+  private safeSelect() {
     return {
       id: true,
       name: true,
@@ -96,8 +85,7 @@ export class PrismaUserRepository implements IUserRepository {
     } as const;
   }
 
-  /** Construye cláusula WHERE según filtros */
-  private buildWhereClause(params: { search?: string; isActive?: boolean; role?: Role }) {
+  private buildWhere(params: { search?: string; isActive?: boolean; role?: Role }) {
     const { search, isActive, role } = params;
 
     return {
