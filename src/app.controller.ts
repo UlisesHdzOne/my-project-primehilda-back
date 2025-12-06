@@ -1,11 +1,21 @@
-import { Controller, Get, Res, Req, Headers, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Res,
+  Req,
+  Headers,
+  BadRequestException,
+  NotFoundException,
+  Query,
+} from '@nestjs/common';
 import { PrismaService } from './database/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
+import { AppLogger } from './common/logger/winston.config';
 
 @Controller()
 export class AppController {
-  private readonly logger = new Logger(AppController.name);
+  private readonly logger = new AppLogger(AppController.name);
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -78,6 +88,77 @@ export class AppController {
       corsConfig,
       message: 'CORS está configurado correctamente',
     });
+  }
+
+  // ============================================
+  // 🧪 ENDPOINTS DE PRUEBA PARA EL NUEVO LOGGER Y ERROR HANDLING
+  // ============================================
+
+  @Get('test/error/404')
+  testNotFoundError() {
+    throw new NotFoundException('Este es un error 404 de prueba');
+  }
+
+  @Get('test/error/400')
+  testBadRequestError(@Query('name') name?: string) {
+    if (!name) {
+      throw new BadRequestException({
+        message: 'El parámetro "name" es requerido',
+        error: 'Bad Request',
+        statusCode: 400,
+      });
+    }
+    return { message: `Hola ${name}` };
+  }
+
+  @Get('test/error/validation')
+  testValidationError() {
+    throw new BadRequestException({
+      message: [
+        {
+          property: 'email',
+          constraints: {
+            isEmail: 'El email debe ser válido',
+          },
+        },
+        {
+          property: 'password',
+          constraints: {
+            minLength: 'La contraseña debe tener al menos 8 caracteres',
+            matches: 'La contraseña debe contener mayúsculas y números',
+          },
+        },
+      ],
+      error: 'Validation Error',
+      statusCode: 400,
+    });
+  }
+
+  @Get('test/error/500')
+  testServerError() {
+    // Simular un error del servidor
+    throw new Error('Este es un error interno del servidor de prueba');
+  }
+
+  @Get('test/logs/info')
+  testInfoLog() {
+    this.logger.log('Este es un log INFO de prueba desde AppController');
+    return { message: 'Log INFO generado' };
+  }
+
+  @Get('test/logs/error')
+  testErrorLog() {
+    this.logger.error(
+      'Este es un log ERROR de prueba desde AppController',
+      new Error('Error simulado'),
+    );
+    return { message: 'Log ERROR generado' };
+  }
+
+  @Get('test/logs/warn')
+  testWarnLog() {
+    this.logger.warn('Este es un log WARN de prueba desde AppController');
+    return { message: 'Log WARN generado' };
   }
 
   private getMemoryUsage() {
