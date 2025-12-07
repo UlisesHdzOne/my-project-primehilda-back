@@ -1,12 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
-import { PrismaService } from './database/prisma.service';
 import { AppLogger } from './common/logger/winston.config';
 
 @Controller()
 export class AppController {
   private readonly logger = new AppLogger(AppController.name);
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor() {}
 
   @Get()
   getHello(): { message: string } {
@@ -16,7 +15,6 @@ export class AppController {
   @Get('health')
   async getHealth() {
     try {
-      await this.prismaService.$queryRaw`SELECT 1`;
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),

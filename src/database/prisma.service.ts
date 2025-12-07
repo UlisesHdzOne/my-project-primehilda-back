@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import configuration from '../config/configuration';
 
 @Injectable()
@@ -7,12 +7,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const config = configuration(); // obtiene nodeEnv y database URL
+    const config = configuration();
     const isDev = config.nodeEnv === 'development';
 
     super({
-      // Logs de queries solo en desarrollo, siempre warn y error
-      log: [...(isDev ? ['query'] : []), 'warn', 'error'] as any,
+      log: [
+        ...(isDev ? [{ emit: 'stdout', level: 'query' } as Prisma.LogDefinition] : []),
+        { emit: 'stdout', level: 'warn' } as Prisma.LogDefinition,
+        { emit: 'stdout', level: 'error' } as Prisma.LogDefinition,
+      ],
       errorFormat: 'colorless',
     });
   }
@@ -36,18 +39,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 
-  // Solo si necesitas limpiar la base de datos en dev/test
+  // Opción segura para reset en desarrollo
   async cleanDatabase() {
     if (process.env.NODE_ENV === 'production') {
-      this.logger.warn('🚫 Limpieza de base de datos omitida en producción');
+      this.logger.warn('🚫 No se permite limpiar DB en producción');
       return;
     }
 
-    this.logger.log('🧹 Iniciando limpieza de base de datos...');
+    this.logger.log('🧹 Limpiando base de datos...');
+
     try {
-      const modelsToDelete = [this.user.deleteMany()].filter(Boolean);
-      if (!modelsToDelete.length) return;
-      await this.$transaction(modelsToDelete);
+      // Como NO hay tablas user/product aún desde Nest, por ahora vaciamos categorías
+      await this.$transaction([this.product.deleteMany(), this.category.deleteMany()]);
+
       this.logger.log('✅ Base de datos limpiada exitosamente');
     } catch (error) {
       this.logger.error('❌ Error limpiando base de datos:', error);
@@ -55,29 +59,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 
-  // Health check
-  async checkHealth(): Promise<{ status: string; timestamp: Date }> {
+  async checkHealth() {
     try {
       await this.$queryRaw`SELECT 1`;
       return { status: 'healthy', timestamp: new Date() };
     } catch (error) {
       this.logger.error('❌ Health check falló:', error);
       return { status: 'unhealthy', timestamp: new Date() };
-    }
-  }
-
-  // Stats solo en desarrollo
-  async getDatabaseStats() {
-    if (process.env.NODE_ENV !== 'development') {
-      return { message: 'Solo disponible en desarrollo' };
-    }
-
-    try {
-      const userCount = await this.user.count();
-      return { users: userCount, timestamp: new Date().toISOString() };
-    } catch (error) {
-      this.logger.error('Error obteniendo estadísticas:', error);
-      return { error: 'No se pudieron obtener estadísticas' };
     }
   }
 }

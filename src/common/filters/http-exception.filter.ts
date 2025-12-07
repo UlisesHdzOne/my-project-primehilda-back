@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { AppError } from '../errors/custom.errors';
 import { winstonLogger } from '../logger/winston.config';
 
-// Tipos para las respuestas de error
 interface ErrorDetail {
   message: string;
   field?: string;
@@ -21,11 +20,15 @@ interface ErrorResponseBody {
   };
 }
 
-// Tipo para respuestas de HttpException con mejor type safety
 type ExceptionResponse =
   | string
   | {
-      message?: string | Array<{ property: string; constraints?: Record<string, string> }>;
+      message?:
+        | string
+        | Array<{
+            property: string;
+            constraints?: Record<string, string>;
+          }>;
       details?: ErrorDetail[];
       error?: string;
     };
@@ -37,26 +40,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    // Loggear el error con Winston
     this.logErrorWithWinston(exception, request);
 
-    // Construir respuesta
     const errorResponse = this.buildErrorResponse(exception, request);
 
-    // Enviar respuesta
     response.status(errorResponse.error.statusCode).json(errorResponse);
   }
 
   private logErrorWithWinston(exception: unknown, request: Request): void {
-    const user = request.user as { id?: number } | undefined;
-
     const logEntry = {
       timestamp: new Date().toISOString(),
       method: request.method,
       path: request.url,
       ip: request.ip,
       userAgent: request.get('user-agent') || undefined,
-      userId: user?.id,
       error: exception instanceof Error ? exception.message : 'Unknown error',
       stack: exception instanceof Error ? exception.stack : undefined,
     };
@@ -83,7 +80,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const timestamp = new Date().toISOString();
     const path = request.url;
 
-    // 1. Manejar AppError personalizada
     if (exception instanceof AppError) {
       return {
         success: false,
@@ -98,7 +94,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // 2. Manejar HttpException de Nest
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
@@ -116,7 +111,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // 3. Error genérico (no manejado)
     return {
       success: false,
       error: {
@@ -146,31 +140,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private getHttpExceptionMessage(response: unknown): string {
-    if (typeof response === 'string') {
-      return response;
-    }
+    if (typeof response === 'string') return response;
 
     if (response && typeof response === 'object') {
       const res = response as ExceptionResponse;
 
-      if (typeof res === 'string') {
-        return res;
-      }
+      if (typeof res === 'string') return res;
 
-      // Si hay un mensaje de error
-      if (typeof res.message === 'string') {
-        return res.message;
-      }
+      if (typeof res.message === 'string') return res.message;
 
-      // Si es un array de mensajes (validation errors)
-      if (Array.isArray(res.message)) {
-        return 'Error de validación';
-      }
+      if (Array.isArray(res.message)) return 'Error de validación';
 
-      // Si hay una propiedad 'error'
-      if (typeof res.error === 'string') {
-        return res.error;
-      }
+      if (typeof res.error === 'string') return res.error;
     }
 
     return 'Error HTTP';
@@ -182,19 +163,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (response && typeof response === 'object') {
       const res = response as ExceptionResponse;
 
-      if (typeof res === 'string') {
-        return details;
-      }
+      if (typeof res === 'string') return details;
 
-      // 1. Si hay details explícitos
-      if (Array.isArray(res.details)) {
-        // TypeScript ya sabe que res.details es ErrorDetail[] por el tipo ExceptionResponse
-        return res.details;
-      }
+      if (Array.isArray(res.details)) return res.details;
 
-      // 2. Si hay message array (validation errors de class-validator)
       if (Array.isArray(res.message)) {
-        // TypeScript ya sabe que res.message es el array del tipo definido
         for (const error of res.message) {
           if (error.constraints) {
             const messages = Object.values(error.constraints);
@@ -211,5 +184,4 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 }
 
-// Exportar tipo para usar en otros lugares
 export type { ErrorResponseBody, ErrorDetail };
