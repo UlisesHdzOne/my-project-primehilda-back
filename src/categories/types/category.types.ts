@@ -5,3 +5,9 @@ export type CreateCategoryInput = {
 export type UpdateCategoryInput = {
   name?: string;
 };
+
+export interface FindAllCategoriesOptions {
+  page?: number;
+  limit?: number;
+  includeProducts?: boolean;
+}

@@ -1,4 +1,3 @@
-// src/config/configuration.ts - VERSIÓN SIMPLIFICADA
 import { registerAs } from '@nestjs/config';
 import * as Joi from 'joi';
 

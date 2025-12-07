@@ -1,3 +1,4 @@
+// src/core/errors/custom.errors.ts
 export abstract class AppError extends Error {
   abstract statusCode: number;
   abstract code: string;
@@ -12,12 +13,19 @@ export abstract class AppError extends Error {
   abstract serializeErrors(): Array<{ message: string; field?: string }>;
 }
 
+// ==============================
+// Errores específicos
+// ==============================
+
 export class NotFoundError extends AppError {
   statusCode = 404;
   code = 'NOT_FOUND';
   isOperational = true;
 
-  constructor(resource: string, id?: string | number) {
+  constructor(
+    public readonly resource: string,
+    public readonly id?: string | number,
+  ) {
     super(`${resource}${id ? ` con ID ${id}` : ''} no encontrado.`);
   }
 
@@ -73,12 +81,15 @@ export class ConflictError extends AppError {
   code = 'CONFLICT';
   isOperational = true;
 
-  constructor(resource: string, conflictField: string) {
-    super(`${resource} con ${conflictField} ya existe`);
+  constructor(
+    public readonly resourceName: string,
+    public readonly conflictField: string,
+  ) {
+    super(`${resourceName} con ${conflictField} ya existe`);
   }
 
   serializeErrors() {
-    return [{ message: this.message }];
+    return [{ field: this.conflictField, message: this.message }];
   }
 }
 

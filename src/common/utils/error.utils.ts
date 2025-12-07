@@ -1,4 +1,4 @@
-import { DatabaseError, NotFoundError, ConflictError } from '@/common/errors/custom.errors';
+import { DatabaseError, NotFoundError, ConflictError } from '@/core/errors/custom.errors';
 
 export async function withDatabaseErrorHandling<T>(
   operation: string,

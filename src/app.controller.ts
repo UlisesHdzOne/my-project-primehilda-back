@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppLogger } from './common/logger/winston.config';
+import { AppLogger } from './core/logger/winston.config';
 
 @Controller()
 export class AppController {

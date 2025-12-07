@@ -1,7 +1,7 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { AppError } from '../errors/custom.errors';
-import { winstonLogger } from '../logger/winston.config';
+import { AppError } from '../../core/errors/custom.errors';
+import { winstonLogger } from '../../core/logger/winston.config';
 
 interface ErrorDetail {
   message: string;
@@ -16,22 +16,16 @@ interface ErrorResponseBody {
     details?: ErrorDetail[];
     timestamp: string;
     path: string;
+    method: string;
     statusCode: number;
   };
 }
 
-type ExceptionResponse =
-  | string
-  | {
-      message?:
-        | string
-        | Array<{
-            property: string;
-            constraints?: Record<string, string>;
-          }>;
-      details?: ErrorDetail[];
-      error?: string;
-    };
+// Tipo seguro para errores de validación
+interface ValidationError {
+  property: string;
+  constraints?: Record<string, string>;
+}
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -40,14 +34,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    this.logErrorWithWinston(exception, request);
+    this.logError(exception, request);
 
     const errorResponse = this.buildErrorResponse(exception, request);
 
     response.status(errorResponse.error.statusCode).json(errorResponse);
   }
 
-  private logErrorWithWinston(exception: unknown, request: Request): void {
+  private logError(exception: unknown, request: Request) {
     const logEntry = {
       timestamp: new Date().toISOString(),
       method: request.method,
@@ -59,18 +53,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
 
     if (exception instanceof AppError) {
-      if (exception.isOperational) {
-        winstonLogger.warn('Operational Error', logEntry);
-      } else {
-        winstonLogger.error('Application Error', logEntry);
-      }
+      winstonLogger.log(exception.isOperational ? 'warn' : 'error', exception.message, logEntry);
     } else if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      if (status >= 500) {
-        winstonLogger.error('Server Error', logEntry);
-      } else {
-        winstonLogger.warn('Client Error', logEntry);
-      }
+      winstonLogger.log(status >= 500 ? 'error' : 'warn', 'HttpException', logEntry);
     } else {
       winstonLogger.error('Unexpected Error', logEntry);
     }
@@ -79,6 +65,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private buildErrorResponse(exception: unknown, request: Request): ErrorResponseBody {
     const timestamp = new Date().toISOString();
     const path = request.url;
+    const method = request.method;
 
     if (exception instanceof AppError) {
       return {
@@ -89,6 +76,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           details: exception.serializeErrors(),
           timestamp,
           path,
+          method,
           statusCode: exception.statusCode,
         },
       };
@@ -96,16 +84,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const exceptionResponse = exception.getResponse();
+      const res = exception.getResponse();
+
+      const message = this.getHttpExceptionMessage(res, exception);
+      const details = this.extractDetails(res);
 
       return {
         success: false,
         error: {
           code: this.getHttpExceptionCode(status),
-          message: this.getHttpExceptionMessage(exceptionResponse),
-          details: this.getHttpExceptionDetails(exceptionResponse),
+          message,
+          details,
           timestamp,
           path,
+          method,
           statusCode: status,
         },
       };
@@ -118,9 +110,54 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message: 'Error interno del servidor',
         timestamp,
         path,
+        method,
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       },
     };
+  }
+
+  private getHttpExceptionMessage(response: unknown, exception: HttpException): string {
+    if (typeof response === 'string') return response;
+
+    if (response && typeof response === 'object') {
+      if ('message' in response && typeof response.message === 'string') return response.message;
+      if ('error' in response && typeof response.error === 'string') return response.error;
+    }
+
+    return exception.message || 'Error HTTP';
+  }
+
+  private extractDetails(response: unknown): ErrorDetail[] {
+    const details: ErrorDetail[] = [];
+
+    if (response && typeof response === 'object' && 'message' in response) {
+      const res = response as Record<string, unknown>;
+
+      if (Array.isArray(res.message)) {
+        for (const error of res.message) {
+          // type guard seguro
+          if (
+            error &&
+            typeof error === 'object' &&
+            'property' in error &&
+            'constraints' in error &&
+            typeof error.constraints === 'object' &&
+            error.constraints !== null
+          ) {
+            const validationError = error as ValidationError;
+            const messages = validationError.constraints
+              ? Object.values(validationError.constraints)
+              : [];
+            details.push({
+              field: validationError.property,
+              message: messages.join(', '),
+            });
+          }
+        }
+      }
+    }
+
+    return details;
   }
 
   private getHttpExceptionCode(status: number): string {
@@ -137,50 +174,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       503: 'SERVICE_UNAVAILABLE',
     };
     return codes[status] || 'HTTP_ERROR';
-  }
-
-  private getHttpExceptionMessage(response: unknown): string {
-    if (typeof response === 'string') return response;
-
-    if (response && typeof response === 'object') {
-      const res = response as ExceptionResponse;
-
-      if (typeof res === 'string') return res;
-
-      if (typeof res.message === 'string') return res.message;
-
-      if (Array.isArray(res.message)) return 'Error de validación';
-
-      if (typeof res.error === 'string') return res.error;
-    }
-
-    return 'Error HTTP';
-  }
-
-  private getHttpExceptionDetails(response: unknown): ErrorDetail[] {
-    const details: ErrorDetail[] = [];
-
-    if (response && typeof response === 'object') {
-      const res = response as ExceptionResponse;
-
-      if (typeof res === 'string') return details;
-
-      if (Array.isArray(res.details)) return res.details;
-
-      if (Array.isArray(res.message)) {
-        for (const error of res.message) {
-          if (error.constraints) {
-            const messages = Object.values(error.constraints);
-            details.push({
-              field: error.property,
-              message: messages.join(', '),
-            });
-          }
-        }
-      }
-    }
-
-    return details;
   }
 }
 

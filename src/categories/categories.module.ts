@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CategoriesController } from './categories.controller';
-import { DatabaseModule } from '../database/database.module';
+import { DatabaseModule } from '../core/database/database.module';
 import { CommonModule } from '../common/common.module';
 
 @Module({
@@ -11,5 +11,6 @@ import { CommonModule } from '../common/common.module';
   ],
   controllers: [CategoriesController],
   providers: [CategoriesService],
+  exports: [CategoriesService], // Exportar si otros módulos lo necesitan
 })
 export class CategoriesModule {}
