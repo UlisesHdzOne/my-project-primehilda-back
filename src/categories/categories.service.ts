@@ -1,13 +1,20 @@
+// categories/categories.service.ts
 import { Injectable } from '@nestjs/common';
+import { Prisma, Category } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
+import { AppLogger } from '@/core/logger/winston.config';
+import { ErrorUtilsService } from '@/common/utils/error-utils.service';
+import { CategoryBusinessValidator } from './validators/category-business.validator';
 import {
   CreateCategoryInput,
   UpdateCategoryInput,
   FindAllCategoriesOptions,
+  CategoryWithProductDetails,
+  CategoryWithProductBasic,
+  PaginatedCategories,
 } from './types/category.types';
-import { AppLogger } from '@/core/logger/winston.config';
-import { ErrorUtilsService } from '@/common/utils/error-utils.service';
-import { ConflictError } from '@/core/errors/custom.errors';
+
+type CategoryBase = Prisma.CategoryGetPayload<Record<string, never>>;
 
 @Injectable()
 export class CategoriesService {
@@ -15,22 +22,14 @@ export class CategoriesService {
     private readonly prisma: PrismaService,
     private readonly logger: AppLogger,
     private readonly errorUtils: ErrorUtilsService,
+    private readonly businessValidator: CategoryBusinessValidator,
   ) {
     this.logger.log('CategoriesService inicializado');
   }
 
-  async create(input: CreateCategoryInput) {
+  async create(input: CreateCategoryInput): Promise<Category> {
     return this.errorUtils.withDatabaseErrorHandling('CrearCategoría', async () => {
-      const existingCategory = await this.prisma.category.findUnique({
-        where: { name: input.name },
-      });
-
-      //this.errorUtils.checkConflict(existingCategory, 'Categoría', 'nombre');
-
-      if (existingCategory) {
-        this.logger.warn('Intento de crear categoría con nombre duplicado', { name: input.name });
-        throw new ConflictError('Categoría', 'name');
-      }
+      await this.businessValidator.validateCategoryCreation(input.name);
 
       const category = await this.prisma.category.create({
         data: input,
@@ -45,65 +44,71 @@ export class CategoriesService {
     });
   }
 
-  async findAll(options?: FindAllCategoriesOptions) {
+  async findAll(options?: FindAllCategoriesOptions): Promise<PaginatedCategories> {
     return this.errorUtils.withDatabaseErrorHandling('Obtener categorías', async () => {
       const page = options?.page || 1;
       const limit = options?.limit || 10;
       const skip = (page - 1) * limit;
+      const includeProducts = options?.includeProducts || false;
+
+      const includeClause: Prisma.CategoryInclude | undefined = includeProducts
+        ? {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+              },
+              orderBy: {
+                name: Prisma.SortOrder.asc,
+              },
+            },
+          }
+        : undefined;
 
       const [categories, total] = await Promise.all([
         this.prisma.category.findMany({
           skip,
           take: limit,
-          orderBy: { name: 'asc' },
-          include: options?.includeProducts
-            ? {
-                products: {
-                  select: {
-                    id: true,
-                    name: true,
-                    price: true,
-                  },
-                  orderBy: { name: 'asc' },
-                },
-              }
-            : undefined,
+          orderBy: { name: Prisma.SortOrder.asc },
+          include: includeClause,
         }),
         this.prisma.category.count(),
       ]);
 
-      this.logger.log(`Categorías obtenidas: ${categories.length} de ${total}`, {
+      const totalPages = Math.ceil(total / limit);
+
+      this.logger.log('Categorías obtenidas con paginación', {
         page,
         limit,
         total,
+        totalPages,
+        returnedCount: categories.length,
+        includeProducts,
       });
 
       return {
-        data: categories,
+        data: categories as (CategoryWithProductDetails | CategoryBase)[],
         meta: {
           total,
           page,
           limit,
-          totalPages: Math.ceil(total / limit),
-          hasNextPage: page < Math.ceil(total / limit),
+          totalPages,
+          hasNextPage: page < totalPages,
           hasPrevPage: page > 1,
         },
       };
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<CategoryWithProductDetails> {
     return this.errorUtils.withDatabaseErrorHandling('Obtener categoría', async () => {
       const category = await this.prisma.category.findUnique({
         where: { id },
         include: {
           products: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-            },
-            orderBy: { name: 'asc' },
+            select: { id: true, name: true, price: true },
+            orderBy: { name: Prisma.SortOrder.asc },
           },
         },
       });
@@ -113,67 +118,62 @@ export class CategoriesService {
       this.logger.log('Categoría obtenida', {
         categoryId: id,
         name: validCategory.name,
+        productCount: validCategory.products.length,
       });
 
-      return validCategory;
+      return validCategory as CategoryWithProductDetails;
     });
   }
 
-  async update(id: number, input: UpdateCategoryInput) {
+  async update(id: number, input: UpdateCategoryInput): Promise<CategoryWithProductDetails> {
     return this.errorUtils.withDatabaseErrorHandling('Actualizar categoría', async () => {
-      const existingCategory = await this.prisma.category.findUnique({
-        where: { id },
-      });
+      const { currentName } = await this.businessValidator.validateCategoryUpdate(id, input.name);
 
-      const validExistingCategory = this.errorUtils.validateOrThrow(
-        existingCategory,
-        'Categoría',
-        id,
-      );
+      if (!input.name || input.name === currentName) {
+        this.logger.log('Sin cambios en la categoría', { categoryId: id });
 
-      // ✅ Mejor validación: Solo verificar conflicto si el nombre cambió Y es diferente
-      if (input.name && input.name !== validExistingCategory.name) {
-        const duplicateCategory = await this.prisma.category.findUnique({
-          where: { name: input.name },
+        const unchangedCategory = await this.prisma.category.findUnique({
+          where: { id },
+          include: {
+            products: {
+              select: { id: true, name: true, price: true },
+            },
+          },
         });
 
-        // ✅ Verificar que no sea la misma categoría (por si acaso)
-        if (duplicateCategory && duplicateCategory.id !== id) {
-          this.errorUtils.checkConflict(duplicateCategory, 'Categoría', 'nombre');
-        }
-      }
+        const validCategory = this.errorUtils.validateOrThrow(unchangedCategory, 'Categoría', id);
 
-      // ✅ No actualizar si no hay cambios reales
-      if (!input.name || input.name === validExistingCategory.name) {
-        this.logger.log('Sin cambios en la categoría', { categoryId: id });
-        return validExistingCategory;
+        return validCategory as CategoryWithProductDetails;
       }
 
       const updatedCategory = await this.prisma.category.update({
         where: { id },
         data: input,
+        include: {
+          products: {
+            select: { id: true, name: true, price: true },
+          },
+        },
       });
 
-      const changes = (Object.keys(input) as Array<keyof UpdateCategoryInput>).filter(
-        key =>
-          input[key] !== undefined &&
-          input[key] !== validExistingCategory[key as keyof typeof validExistingCategory],
+      const changedFields = (Object.keys(input) as Array<keyof UpdateCategoryInput>).filter(
+        key => input[key] !== undefined,
       );
 
       this.logger.log('Categoría actualizada', {
         categoryId: id,
-        changes,
-        oldName: validExistingCategory.name,
+        oldName: currentName,
         newName: updatedCategory.name,
+        changedFields,
       });
 
-      return updatedCategory;
+      return updatedCategory as CategoryWithProductDetails;
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<Category> {
     return this.errorUtils.withDatabaseErrorHandling('Eliminar categoría', async () => {
-      const existingCategory = await this.prisma.category.findUnique({
+      const categoryWithProducts = await this.prisma.category.findUnique({
         where: { id },
         include: {
           products: {
@@ -182,26 +182,14 @@ export class CategoriesService {
         },
       });
 
-      const validExistingCategory = this.errorUtils.validateOrThrow(
-        existingCategory,
+      const validCategory = this.errorUtils.validateOrThrow(
+        categoryWithProducts,
         'Categoría',
         id,
-      );
+      ) as CategoryWithProductBasic;
 
-      if (validExistingCategory.products.length > 0) {
-        this.logger.warn('Intento de eliminar categoría con productos', {
-          categoryId: id,
-          categoryName: validExistingCategory.name,
-          productCount: validExistingCategory.products.length,
-          productNames: validExistingCategory.products.map(p => p.name),
-        });
-
-        throw new Error(
-          `No se puede eliminar la categoría "${validExistingCategory.name}". ` +
-            `Tiene ${validExistingCategory.products.length} productos asociados. ` +
-            'Elimine los productos primero.',
-        );
-      }
+      // ✅ Tipado correcto sin 'as'
+      this.businessValidator.validateCategoryHasNoProducts(validCategory.products);
 
       const deletedCategory = await this.prisma.category.delete({
         where: { id },
@@ -216,18 +204,24 @@ export class CategoriesService {
     });
   }
 
-  async findByName(name: string) {
+  async findByName(name: string): Promise<CategoryWithProductBasic | null> {
     return this.errorUtils.withDatabaseErrorHandling('Buscar categoría por nombre', async () => {
       const category = await this.prisma.category.findUnique({
         where: { name },
+        include: {
+          products: {
+            select: { id: true, name: true },
+          },
+        },
       });
 
-      this.logger.debug('Búsqueda por nombre', {
+      this.logger.debug('Búsqueda de categoría por nombre', {
         name,
         found: !!category,
+        productCount: category?.products?.length || 0,
       });
 
-      return category;
+      return category as CategoryWithProductBasic | null;
     });
   }
 }

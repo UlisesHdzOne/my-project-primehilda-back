@@ -1,5 +1,6 @@
-import { IsOptional, IsBoolean, IsString, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
+// categories/dto/category-query.dto.ts
+import { IsOptional, IsBoolean, IsInt, Min, Max, IsIn } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class CategoryQueryDto {
   @IsOptional()
@@ -8,12 +9,23 @@ export class CategoryQueryDto {
   includeProducts?: boolean;
 
   @IsOptional()
-  @IsString()
-  @IsIn(['id', 'name', 'createdAt'])
-  orderBy?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
 
   @IsOptional()
-  @IsString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+
+  @IsOptional()
+  @IsIn(['name', 'id', 'createdAt'])
+  orderBy?: string = 'name';
+
+  @IsOptional()
   @IsIn(['asc', 'desc'])
-  order?: 'asc' | 'desc';
+  order?: 'asc' | 'desc' = 'asc';
 }

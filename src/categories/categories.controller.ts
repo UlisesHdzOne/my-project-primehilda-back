@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// categories/categories.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { UpdateCategoryInput } from './types/category.types';
+import { CategoryQueryDto } from './dto/category-query.dto';
 
 @Controller('categories')
 export class CategoriesController {
@@ -10,15 +11,17 @@ export class CategoriesController {
 
   @Post()
   create(@Body() dto: CreateCategoryDto) {
-    const input: CreateCategoryDto = {
-      name: dto.name,
-    };
-    return this.categoriesService.create(input);
+    return this.categoriesService.create(dto);
   }
 
   @Get()
-  findAll() {
-    return this.categoriesService.findAll();
+  findAll(@Query() query: CategoryQueryDto) {
+    const options = {
+      page: query.page,
+      limit: query.limit,
+      includeProducts: query.includeProducts,
+    };
+    return this.categoriesService.findAll(options);
   }
 
   @Get(':id')
@@ -28,10 +31,7 @@ export class CategoriesController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
-    const input: UpdateCategoryInput = {
-      name: dto.name,
-    };
-    return this.categoriesService.update(+id, input);
+    return this.categoriesService.update(+id, dto);
   }
 
   @Delete(':id')

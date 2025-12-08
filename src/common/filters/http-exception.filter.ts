@@ -1,8 +1,10 @@
+// src/common/filters/http-exception.filter.ts
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppError } from '../../core/errors/custom.errors';
 import { winstonLogger } from '../../core/logger/winston.config';
 
+// ==================== TIPOS ====================
 interface ErrorDetail {
   message: string;
   field?: string;
@@ -21,12 +23,7 @@ interface ErrorResponseBody {
   };
 }
 
-// Tipo seguro para errores de validación
-interface ValidationError {
-  property: string;
-  constraints?: Record<string, string>;
-}
-
+// ==================== FILTER ====================
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -35,30 +32,44 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     this.logError(exception, request);
-
     const errorResponse = this.buildErrorResponse(exception, request);
 
     response.status(errorResponse.error.statusCode).json(errorResponse);
   }
 
-  private logError(exception: unknown, request: Request) {
+  private logError(exception: unknown, request: Request): void {
     const logEntry = {
       timestamp: new Date().toISOString(),
       method: request.method,
       path: request.url,
       ip: request.ip,
       userAgent: request.get('user-agent') || undefined,
-      error: exception instanceof Error ? exception.message : 'Unknown error',
-      stack: exception instanceof Error ? exception.stack : undefined,
     };
 
     if (exception instanceof AppError) {
-      winstonLogger.log(exception.isOperational ? 'warn' : 'error', exception.message, logEntry);
+      winstonLogger.log(exception.isOperational ? 'warn' : 'error', exception.message, {
+        ...logEntry,
+        error: exception.message,
+        stack: exception.stack,
+      });
     } else if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      winstonLogger.log(status >= 500 ? 'error' : 'warn', 'HttpException', logEntry);
+      winstonLogger.log(status >= 500 ? 'error' : 'warn', 'HttpException', {
+        ...logEntry,
+        error: exception.message,
+        stack: exception.stack,
+      });
+    } else if (exception instanceof Error) {
+      winstonLogger.error('Unexpected Error', {
+        ...logEntry,
+        error: exception.message,
+        stack: exception.stack,
+      });
     } else {
-      winstonLogger.error('Unexpected Error', logEntry);
+      winstonLogger.error('Unknown Error Type', {
+        ...logEntry,
+        error: String(exception),
+      });
     }
   }
 
@@ -67,7 +78,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const path = request.url;
     const method = request.method;
 
-    if (exception instanceof AppError) {
+    // ========== APP ERROR ==========
+    if (this.isAppError(exception)) {
       return {
         success: false,
         error: {
@@ -82,12 +94,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
+    // ========== HTTP EXCEPTION ==========
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const res = exception.getResponse();
-
-      const message = this.getHttpExceptionMessage(res, exception);
-      const details = this.extractDetails(res);
+      const response = exception.getResponse();
+      const message = this.getHttpExceptionMessage(response);
+      const details = this.extractHttpExceptionDetails(response);
 
       return {
         success: false,
@@ -103,6 +115,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
+    // ========== UNKNOWN ERROR ==========
     return {
       success: false,
       error: {
@@ -116,45 +129,114 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
   }
 
-  private getHttpExceptionMessage(response: unknown, exception: HttpException): string {
-    if (typeof response === 'string') return response;
-
-    if (response && typeof response === 'object') {
-      if ('message' in response && typeof response.message === 'string') return response.message;
-      if ('error' in response && typeof response.error === 'string') return response.error;
+  // ==================== HELPER METHODS ====================
+  private isAppError(error: unknown): error is AppError {
+    // Verificación robusta
+    if (error instanceof AppError) {
+      return true;
     }
 
-    return exception.message || 'Error HTTP';
+    // Fallback: verificar propiedades
+    if (
+      error &&
+      typeof error === 'object' &&
+      'statusCode' in error &&
+      'code' in error &&
+      'serializeErrors' in error &&
+      'isOperational' in error &&
+      'message' in error
+    ) {
+      const err = error as Record<string, unknown>;
+      return (
+        typeof err.statusCode === 'number' &&
+        typeof err.code === 'string' &&
+        typeof err.serializeErrors === 'function' &&
+        typeof err.isOperational === 'boolean' &&
+        typeof err.message === 'string'
+      );
+    }
+
+    return false;
   }
 
-  private extractDetails(response: unknown): ErrorDetail[] {
-    const details: ErrorDetail[] = [];
+  private getHttpExceptionMessage(response: unknown): string {
+    if (typeof response === 'string') {
+      return response;
+    }
 
-    if (response && typeof response === 'object' && 'message' in response) {
+    if (response && typeof response === 'object') {
       const res = response as Record<string, unknown>;
 
-      if (Array.isArray(res.message)) {
-        for (const error of res.message) {
-          // type guard seguro
-          if (
-            error &&
-            typeof error === 'object' &&
-            'property' in error &&
-            'constraints' in error &&
-            typeof error.constraints === 'object' &&
-            error.constraints !== null
-          ) {
-            const validationError = error as ValidationError;
-            const messages = validationError.constraints
-              ? Object.values(validationError.constraints)
-              : [];
+      if (typeof res.message === 'string') {
+        return res.message;
+      }
+
+      if (typeof res.error === 'string') {
+        return res.error;
+      }
+
+      if (Array.isArray(res.message) && res.message.length > 0) {
+        return 'Error de validación';
+      }
+    }
+
+    return 'Error HTTP';
+  }
+
+  private extractHttpExceptionDetails(response: unknown): ErrorDetail[] {
+    const details: ErrorDetail[] = [];
+
+    if (!response || typeof response !== 'object') {
+      return details;
+    }
+
+    const res = response as Record<string, unknown>;
+
+    // ✅ PRIMERO: Buscar 'details' directamente (tu estructura actual)
+    if ('details' in res && Array.isArray(res.details)) {
+      for (const detail of res.details) {
+        if (detail && typeof detail === 'object' && 'field' in detail && 'message' in detail) {
+          const errorDetail = detail as { field: unknown; message: unknown };
+
+          // Validar tipos
+          if (typeof errorDetail.field === 'string' && typeof errorDetail.message === 'string') {
             details.push({
-              field: validationError.property,
-              message: messages.join(', '),
+              field: errorDetail.field,
+              message: errorDetail.message,
             });
           }
         }
       }
+
+      if (details.length > 0) {
+        return details;
+      }
+    }
+
+    // ✅ SEGUNDO: Mensajes de class-validator tradicionales
+    if ('message' in res && Array.isArray(res.message)) {
+      for (const error of res.message) {
+        if (error && typeof error === 'object' && 'property' in error && 'constraints' in error) {
+          const validationError = error as {
+            property: unknown;
+            constraints: Record<string, string>;
+          };
+
+          if (typeof validationError.property === 'string') {
+            const messages = Object.values(validationError.constraints || {});
+
+            details.push({
+              field: validationError.property,
+              message: messages.join(', ') || 'Campo inválido',
+            });
+          }
+        }
+      }
+    }
+
+    // ✅ TERCERO: Si no hay detalles específicos, usar el mensaje general
+    if (details.length === 0 && 'message' in res && typeof res.message === 'string') {
+      details.push({ message: res.message });
     }
 
     return details;
@@ -173,8 +255,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       502: 'BAD_GATEWAY',
       503: 'SERVICE_UNAVAILABLE',
     };
+
     return codes[status] || 'HTTP_ERROR';
   }
 }
-
-export type { ErrorResponseBody, ErrorDetail };

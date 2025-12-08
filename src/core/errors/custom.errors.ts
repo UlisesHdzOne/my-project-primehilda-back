@@ -1,26 +1,30 @@
-// src/core/errors/custom.errors.ts
+// src/core/errors/custom.errors.ts - VERSIÓN COMPLETA
 export abstract class AppError extends Error {
-  abstract statusCode: number;
-  abstract code: string;
-  abstract isOperational: boolean;
+  public abstract readonly statusCode: number;
+  public abstract readonly code: string;
+  public abstract readonly isOperational: boolean;
 
   constructor(message: string) {
     super(message);
-    Object.setPrototypeOf(this, AppError.prototype);
-    Error.captureStackTrace(this, this.constructor);
+
+    // ✅ CRÍTICO: Esto es esencial para que instanceof funcione
+    Object.setPrototypeOf(this, new.target.prototype);
+
+    // ✅ Mantener el stack trace
+    Error.captureStackTrace?.(this, this.constructor);
+
+    // ✅ Nombre correcto
+    this.name = this.constructor.name;
   }
 
-  abstract serializeErrors(): Array<{ message: string; field?: string }>;
+  public abstract serializeErrors(): Array<{ message: string; field?: string }>;
 }
 
-// ==============================
-// Errores específicos
-// ==============================
-
+// ========== NOT FOUND ERROR ==========
 export class NotFoundError extends AppError {
-  statusCode = 404;
-  code = 'NOT_FOUND';
-  isOperational = true;
+  public readonly statusCode = 404;
+  public readonly code = 'NOT_FOUND';
+  public readonly isOperational = true;
 
   constructor(
     public readonly resource: string,
@@ -29,57 +33,61 @@ export class NotFoundError extends AppError {
     super(`${resource}${id ? ` con ID ${id}` : ''} no encontrado.`);
   }
 
-  serializeErrors() {
+  public serializeErrors() {
     return [{ message: this.message }];
   }
 }
 
+// ========== VALIDATION ERROR ==========
 export class ValidationError extends AppError {
-  statusCode = 400;
-  code = 'VALIDATION_ERROR';
-  isOperational = true;
+  public readonly statusCode = 400;
+  public readonly code = 'VALIDATION_ERROR';
+  public readonly isOperational = true;
 
   constructor(public errors: Array<{ field: string; message: string }>) {
     super('Error de validación');
   }
 
-  serializeErrors() {
+  public serializeErrors() {
     return this.errors;
   }
 }
 
+// ========== UNAUTHORIZED ERROR ==========
 export class UnauthorizedError extends AppError {
-  statusCode = 401;
-  code = 'UNAUTHORIZED';
-  isOperational = true;
+  public readonly statusCode = 401;
+  public readonly code = 'UNAUTHORIZED';
+  public readonly isOperational = true;
 
   constructor(message = 'No autorizado') {
     super(message);
   }
 
-  serializeErrors() {
+  public serializeErrors() {
     return [{ message: this.message }];
   }
 }
 
+// ========== FORBIDDEN ERROR ==========
 export class ForbiddenError extends AppError {
-  statusCode = 403;
-  code = 'FORBIDDEN';
-  isOperational = true;
+  public readonly statusCode = 403;
+  public readonly code = 'FORBIDDEN';
+  public readonly isOperational = true;
 
   constructor(message = 'Acceso denegado') {
     super(message);
   }
 
-  serializeErrors() {
+  public serializeErrors() {
     return [{ message: this.message }];
   }
 }
 
+// ========== CONFLICT ERROR ==========
 export class ConflictError extends AppError {
-  statusCode = 409;
-  code = 'CONFLICT';
-  isOperational = true;
+  public readonly statusCode = 409;
+  public readonly code = 'CONFLICT';
+  public readonly isOperational = true;
 
   constructor(
     public readonly resourceName: string,
@@ -88,22 +96,57 @@ export class ConflictError extends AppError {
     super(`${resourceName} con ${conflictField} ya existe`);
   }
 
-  serializeErrors() {
-    return [{ field: this.conflictField, message: this.message }];
+  public serializeErrors() {
+    return [
+      {
+        field: this.conflictField,
+        message: this.message,
+      },
+    ];
   }
 }
 
+// ========== DATABASE ERROR ==========
 export class DatabaseError extends AppError {
-  statusCode = 500;
-  code = 'DATABASE_ERROR';
-  isOperational = false;
+  public readonly statusCode = 500;
+  public readonly code = 'DATABASE_ERROR';
+  public readonly isOperational = false;
 
   constructor(operation: string, originalError: Error) {
     super(`Error en operación de base de datos: ${operation}`);
-    this.stack = originalError.stack;
+    if (originalError.stack) {
+      this.stack = originalError.stack;
+    }
   }
 
-  serializeErrors() {
+  public serializeErrors() {
     return [{ message: 'Error interno del servidor' }];
+  }
+}
+
+// ========== BUSINESS RULE ERROR ==========
+export class BusinessRuleError extends AppError {
+  public readonly statusCode = 422;
+  public readonly isOperational = true;
+
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly metadata?: Record<string, unknown>,
+  ) {
+    super(message);
+  }
+
+  public serializeErrors() {
+    const error = {
+      message: this.message,
+      code: this.code,
+    };
+
+    if (this.metadata && process.env.NODE_ENV === 'development') {
+      return [{ ...error, metadata: this.metadata }];
+    }
+
+    return [error];
   }
 }

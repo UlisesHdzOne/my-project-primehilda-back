@@ -3,6 +3,7 @@ import { CategoriesService } from './categories.service';
 import { CategoriesController } from './categories.controller';
 import { DatabaseModule } from '../core/database/database.module';
 import { CommonModule } from '../common/common.module';
+import { CategoryBusinessValidator } from './validators/category-business.validator';
 
 @Module({
   imports: [
@@ -10,7 +11,7 @@ import { CommonModule } from '../common/common.module';
     CommonModule,
   ],
   controllers: [CategoriesController],
-  providers: [CategoriesService],
+  providers: [CategoriesService, CategoryBusinessValidator],
   exports: [CategoriesService], // Exportar si otros módulos lo necesitan
 })
 export class CategoriesModule {}

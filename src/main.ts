@@ -1,3 +1,4 @@
+// src/main.ts - CORREGIR
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +13,7 @@ async function bootstrap() {
   // Configurar global prefix
   app.setGlobalPrefix('api');
 
-  // Configurar ValidationPipe
+  // ✅ CORREGIR ValidationPipe - La estructura debe coincidir con lo que espera el filtro
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -23,10 +24,13 @@ async function bootstrap() {
           field: err.property,
           message: Object.values(err.constraints || {}).join(', '),
         }));
+
+        // ✅ Estructura que GlobalExceptionFilter espera para HttpException
         return new BadRequestException({
-          success: false,
-          error: 'Validation Error',
-          details,
+          message: 'Validation Error', // ← 'message' en lugar de 'error'
+          error: 'Bad Request', // ← 'error' opcional
+          statusCode: 400, // ← 'statusCode' opcional
+          details: details, // ← Esto será extraído por extractHttpExceptionDetails
         });
       },
     }),
@@ -35,7 +39,7 @@ async function bootstrap() {
   // Configurar Exception Filter
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Configurar CORS - Simple y efectivo
+  // Configurar CORS
   const corsOrigin = configService.get('app.cors.origin') || [
     'http://localhost:5173',
     'http://localhost:8100',
