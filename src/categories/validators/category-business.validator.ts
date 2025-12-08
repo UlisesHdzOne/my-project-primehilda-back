@@ -1,65 +1,36 @@
-// src/categories/validators/category-business.validator.ts
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from '@/core/logger/winston.config';
-import { BusinessRuleError, ConflictError, NotFoundError } from '@/core/errors/custom.errors';
-import { PrismaService } from '@/core/database/prisma.service';
-import { Category, Product } from '@prisma/client';
+import { BusinessRuleError, ValidationError } from '@/core/errors/custom.errors';
+import { Product } from '@prisma/client';
 
-// ✅ Tipos específicos usando Pick de Prisma
 export type ProductBasic = Pick<Product, 'id' | 'name'>;
 
 @Injectable()
 export class CategoryBusinessValidator {
-  constructor(
-    private readonly logger: AppLogger,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly logger: AppLogger) {} // ❌ ELIMINAR PrismaService
 
-  async validateCategoryCreation(name: string): Promise<void> {
-    const existing = await this.prisma.category.findUnique({
-      where: { name },
-    });
+  // ✅ REGLAS DE NEGOCIO (SIN BD)
+  validateNameRules(name: string): void {
+    const errors: Array<{ field: string; message: string }> = [];
 
-    if (existing) {
-      this.logger.warn('Intento de crear categoría con nombre duplicado', { name });
-      throw new ConflictError('Categoría', 'name');
-    }
-  }
-
-  async validateCategoryUpdate(
-    id: number,
-    name?: string,
-  ): Promise<{ currentName: string; existingCategory: Category }> {
-    const existingCategory = await this.prisma.category.findUnique({
-      where: { id },
-    });
-
-    if (!existingCategory) {
-      throw new NotFoundError('Categoría', id);
+    if (name.trim().length !== name.length) {
+      errors.push({ field: 'name', message: 'No puede empezar o terminar con espacios' });
     }
 
-    if (name && name !== existingCategory.name) {
-      const duplicate = await this.prisma.category.findUnique({
-        where: { name },
+    const reservedWords = ['admin', 'system', 'root'];
+    if (reservedWords.includes(name.toLowerCase())) {
+      errors.push({
+        field: 'name',
+        message: `"${name}" está reservado. Use: ${reservedWords.join(', ')}`,
       });
-
-      if (duplicate && duplicate.id !== id) {
-        this.logger.warn('Intento de actualizar categoría con nombre duplicado', {
-          categoryId: id,
-          currentName: existingCategory.name,
-          newName: name,
-          duplicateId: duplicate.id,
-        });
-        throw new ConflictError('Categoría', 'name');
-      }
     }
 
-    return {
-      currentName: existingCategory.name,
-      existingCategory, // ✅ Devuelve la categoría completa para evitar consulta extra
-    };
+    if (errors.length > 0) {
+      throw new ValidationError(errors);
+    }
   }
 
+  // ✅ Validar con datos YA OBTENIDOS (no consulta BD)
   validateCategoryHasNoProducts(products: ProductBasic[]): void {
     if (products.length > 0) {
       const productNames = products.map(p => p.name);

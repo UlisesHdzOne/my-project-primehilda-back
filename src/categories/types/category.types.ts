@@ -55,4 +55,4 @@ export type PaginatedCategories = PaginatedResponse<
 >;
 
 // ✅ Tipo helper para extraer productos
-//export type ExtractProducts<T> = T extends { products: infer P } ? P : never;
+export type ExtractProducts<T> = T extends { products: infer P } ? P : never;

@@ -13,6 +13,7 @@ import {
   CategoryWithProductBasic,
   PaginatedCategories,
 } from './types/category.types';
+import { ConflictError, NotFoundError } from '@/core/errors/custom.errors';
 
 type CategoryBase = Prisma.CategoryGetPayload<Record<string, never>>;
 
@@ -25,23 +26,6 @@ export class CategoriesService {
     private readonly businessValidator: CategoryBusinessValidator,
   ) {
     this.logger.log('CategoriesService inicializado');
-  }
-
-  async create(input: CreateCategoryInput): Promise<Category> {
-    return this.errorUtils.withDatabaseErrorHandling('CrearCategoría', async () => {
-      await this.businessValidator.validateCategoryCreation(input.name);
-
-      const category = await this.prisma.category.create({
-        data: input,
-      });
-
-      this.logger.log('Categoría creada exitosamente', {
-        categoryId: category.id,
-        name: category.name,
-      });
-
-      return category;
-    });
   }
 
   async findAll(options?: FindAllCategoriesOptions): Promise<PaginatedCategories> {
@@ -125,38 +109,39 @@ export class CategoriesService {
     });
   }
 
-  async update(id: number, input: UpdateCategoryInput): Promise<CategoryWithProductDetails> {
-    return this.errorUtils.withDatabaseErrorHandling('Actualizar categoría', async () => {
-      // ✅ Ahora recibe currentName Y existingCategory
-      const { currentName, existingCategory } = await this.businessValidator.validateCategoryUpdate(
-        id,
-        input.name,
-      );
+  async create(input: CreateCategoryInput): Promise<Category> {
+    return this.errorUtils.withDatabaseErrorHandling('CrearCategoría', async () => {
+      // 1. ✅ Validar reglas de negocio (SIN BD)
+      this.businessValidator.validateNameRules(input.name);
 
-      // ✅ Usar existingCategory.name en lugar de solo currentName para consistencia
-      if (!input.name || input.name === currentName) {
-        this.logger.log('Sin cambios en la categoría', {
-          categoryId: id,
-          categoryName: existingCategory.name,
-        });
+      // 2. ✅ Verificar unicidad (CONSULTA BD - en el SERVICIO)
+      const existing = await this.prisma.category.findUnique({
+        where: { name: input.name },
+      });
 
-        const unchangedCategory = await this.prisma.category.findUnique({
-          where: { id },
-          include: {
-            products: {
-              select: { id: true, name: true, price: true },
-            },
-          },
-        });
-
-        const validCategory = this.errorUtils.validateOrThrow(unchangedCategory, 'Categoría', id);
-
-        return validCategory as CategoryWithProductDetails;
+      if (existing) {
+        throw new ConflictError('Categoría', 'name');
       }
 
-      const updatedCategory = await this.prisma.category.update({
-        where: { id },
+      // 3. ✅ Crear categoría
+      const category = await this.prisma.category.create({
         data: input,
+      });
+
+      this.logger.log('Categoría creada exitosamente', {
+        categoryId: category.id,
+        name: category.name,
+      });
+
+      return category;
+    });
+  }
+
+  async update(id: number, input: UpdateCategoryInput): Promise<CategoryWithProductDetails> {
+    return this.errorUtils.withDatabaseErrorHandling('Actualizar categoría', async () => {
+      // 1. Obtener categoría actual
+      const currentCategory = await this.prisma.category.findUnique({
+        where: { id },
         include: {
           products: {
             select: { id: true, name: true, price: true },
@@ -164,21 +149,54 @@ export class CategoriesService {
         },
       });
 
-      const changedFields = (Object.keys(input) as Array<keyof UpdateCategoryInput>).filter(
-        key => input[key] !== undefined,
-      );
+      if (!currentCategory) {
+        throw new NotFoundError('Categoría', id);
+      }
 
-      this.logger.log('Categoría actualizada', {
+      // 2. Verificar si hay cambios
+      const hasNameChanged = input.name && input.name !== currentCategory.name;
+
+      if (!hasNameChanged) {
+        this.logger.log('Solicitud de actualización sin cambios', {
+          categoryId: id,
+          categoryName: currentCategory.name,
+        });
+        return currentCategory as CategoryWithProductDetails;
+      }
+
+      // 3. ✅ Validar reglas de negocio para el NUEVO nombre
+      this.businessValidator.validateNameRules(input.name!);
+
+      // 4. ✅ Verificar unicidad (EXCLUYENDO ID ACTUAL - CORREGIDO)
+      const existingWithName = await this.prisma.category.findUnique({
+        where: { name: input.name! },
+      });
+
+      // ✅ CORRECCIÓN: Excluir la categoría actual
+      if (existingWithName && existingWithName.id !== id) {
+        throw new ConflictError('Categoría', 'name');
+      }
+
+      // 5. Actualizar
+      const updatedCategory = await this.prisma.category.update({
+        where: { id },
+        data: { name: input.name! },
+        include: {
+          products: {
+            select: { id: true, name: true, price: true },
+          },
+        },
+      });
+
+      this.logger.log('Categoría actualizada exitosamente', {
         categoryId: id,
-        oldName: currentName,
+        oldName: currentCategory.name,
         newName: updatedCategory.name,
-        changedFields,
       });
 
       return updatedCategory as CategoryWithProductDetails;
     });
   }
-
   async remove(id: number): Promise<Category> {
     return this.errorUtils.withDatabaseErrorHandling('Eliminar categoría', async () => {
       const categoryWithProducts = await this.prisma.category.findUnique({
