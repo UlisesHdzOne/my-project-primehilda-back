@@ -1,4 +1,3 @@
-// categories/types/category.types.ts
 import type { Prisma } from '@prisma/client';
 
 export type CreateCategoryInput = {
@@ -37,8 +36,9 @@ export type CategoryWithProductBasic = Prisma.CategoryGetPayload<{
   };
 }>;
 
-export type PaginatedCategories = {
-  data: CategoryWithProductDetails[] | Prisma.CategoryGetPayload<Record<string, never>>[];
+// ✅ Tipo para paginación genérica
+export type PaginatedResponse<T> = {
+  data: T[];
   meta: {
     total: number;
     page: number;
@@ -48,3 +48,11 @@ export type PaginatedCategories = {
     hasPrevPage: boolean;
   };
 };
+
+// ✅ Tipo específico para categories
+export type PaginatedCategories = PaginatedResponse<
+  CategoryWithProductDetails | Prisma.CategoryGetPayload<Record<string, never>>
+>;
+
+// ✅ Tipo helper para extraer productos
+//export type ExtractProducts<T> = T extends { products: infer P } ? P : never;

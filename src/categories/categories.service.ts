@@ -1,4 +1,4 @@
-// categories/categories.service.ts
+// src/categories/categories.service.ts
 import { Injectable } from '@nestjs/common';
 import { Prisma, Category } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
@@ -127,10 +127,18 @@ export class CategoriesService {
 
   async update(id: number, input: UpdateCategoryInput): Promise<CategoryWithProductDetails> {
     return this.errorUtils.withDatabaseErrorHandling('Actualizar categoría', async () => {
-      const { currentName } = await this.businessValidator.validateCategoryUpdate(id, input.name);
+      // ✅ Ahora recibe currentName Y existingCategory
+      const { currentName, existingCategory } = await this.businessValidator.validateCategoryUpdate(
+        id,
+        input.name,
+      );
 
+      // ✅ Usar existingCategory.name en lugar de solo currentName para consistencia
       if (!input.name || input.name === currentName) {
-        this.logger.log('Sin cambios en la categoría', { categoryId: id });
+        this.logger.log('Sin cambios en la categoría', {
+          categoryId: id,
+          categoryName: existingCategory.name,
+        });
 
         const unchangedCategory = await this.prisma.category.findUnique({
           where: { id },
@@ -188,7 +196,6 @@ export class CategoriesService {
         id,
       ) as CategoryWithProductBasic;
 
-      // ✅ Tipado correcto sin 'as'
       this.businessValidator.validateCategoryHasNoProducts(validCategory.products);
 
       const deletedCategory = await this.prisma.category.delete({

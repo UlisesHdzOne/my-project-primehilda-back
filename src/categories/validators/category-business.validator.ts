@@ -1,14 +1,12 @@
-// categories/validators/category-business.validator.ts
+// src/categories/validators/category-business.validator.ts
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from '@/core/logger/winston.config';
 import { BusinessRuleError, ConflictError, NotFoundError } from '@/core/errors/custom.errors';
 import { PrismaService } from '@/core/database/prisma.service';
+import { Category, Product } from '@prisma/client';
 
-// ✅ Solo el tipo que necesitas
-export interface ProductBasic {
-  id: number;
-  name: string;
-}
+// ✅ Tipos específicos usando Pick de Prisma
+export type ProductBasic = Pick<Product, 'id' | 'name'>;
 
 @Injectable()
 export class CategoryBusinessValidator {
@@ -28,16 +26,19 @@ export class CategoryBusinessValidator {
     }
   }
 
-  async validateCategoryUpdate(id: number, name?: string): Promise<{ currentName: string }> {
-    const category = await this.prisma.category.findUnique({
+  async validateCategoryUpdate(
+    id: number,
+    name?: string,
+  ): Promise<{ currentName: string; existingCategory: Category }> {
+    const existingCategory = await this.prisma.category.findUnique({
       where: { id },
     });
 
-    if (!category) {
+    if (!existingCategory) {
       throw new NotFoundError('Categoría', id);
     }
 
-    if (name && name !== category.name) {
+    if (name && name !== existingCategory.name) {
       const duplicate = await this.prisma.category.findUnique({
         where: { name },
       });
@@ -45,7 +46,7 @@ export class CategoryBusinessValidator {
       if (duplicate && duplicate.id !== id) {
         this.logger.warn('Intento de actualizar categoría con nombre duplicado', {
           categoryId: id,
-          currentName: category.name,
+          currentName: existingCategory.name,
           newName: name,
           duplicateId: duplicate.id,
         });
@@ -53,17 +54,21 @@ export class CategoryBusinessValidator {
       }
     }
 
-    return { currentName: category.name };
+    return {
+      currentName: existingCategory.name,
+      existingCategory, // ✅ Devuelve la categoría completa para evitar consulta extra
+    };
   }
 
-  // ✅ Versión simplificada que SÍ usas
   validateCategoryHasNoProducts(products: ProductBasic[]): void {
     if (products.length > 0) {
       const productNames = products.map(p => p.name);
+      const productIds = products.map(p => p.id);
 
       this.logger.warn('Intento de eliminar categoría con productos', {
         productCount: products.length,
         productNames,
+        productIds,
       });
 
       throw new BusinessRuleError(
@@ -72,6 +77,7 @@ export class CategoryBusinessValidator {
         {
           productCount: products.length,
           productNames,
+          productIds,
         },
       );
     }

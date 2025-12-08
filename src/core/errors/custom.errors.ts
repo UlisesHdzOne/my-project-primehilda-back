@@ -27,8 +27,8 @@ export class NotFoundError extends AppError {
   public readonly isOperational = true;
 
   constructor(
-    public readonly resource: string,
-    public readonly id?: string | number,
+    public readonly resource: string, //nombre del recurso
+    public readonly id?: string | number, //id del recurso
   ) {
     super(`${resource}${id ? ` con ID ${id}` : ''} no encontrado.`);
   }
@@ -44,7 +44,9 @@ export class ValidationError extends AppError {
   public readonly code = 'VALIDATION_ERROR';
   public readonly isOperational = true;
 
-  constructor(public errors: Array<{ field: string; message: string }>) {
+  constructor(
+    public errors: Array<{ field: string; message: string }>, //array de errores
+  ) {
     super('Error de validación');
   }
 
@@ -90,8 +92,8 @@ export class ConflictError extends AppError {
   public readonly isOperational = true;
 
   constructor(
-    public readonly resourceName: string,
-    public readonly conflictField: string,
+    public readonly resourceName: string, //nombre del recurso
+    public readonly conflictField: string, //campo que causa el conflicto
   ) {
     super(`${resourceName} con ${conflictField} ya existe`);
   }
@@ -112,7 +114,10 @@ export class DatabaseError extends AppError {
   public readonly code = 'DATABASE_ERROR';
   public readonly isOperational = false;
 
-  constructor(operation: string, originalError: Error) {
+  constructor(
+    operation: string, //operacion que causo el error
+    originalError: Error, //error original de prisma
+  ) {
     super(`Error en operación de base de datos: ${operation}`);
     if (originalError.stack) {
       this.stack = originalError.stack;
@@ -130,9 +135,9 @@ export class BusinessRuleError extends AppError {
   public readonly isOperational = true;
 
   constructor(
-    public readonly code: string,
-    message: string,
-    public readonly metadata?: Record<string, unknown>,
+    public readonly code: string, //codigo especifico del negocio
+    message: string, //mensaje descriptivo
+    public readonly metadata?: Record<string, unknown>, //Datos adicionales para el error
   ) {
     super(message);
   }
