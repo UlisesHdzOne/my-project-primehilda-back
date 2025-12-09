@@ -1,4 +1,3 @@
-// src/core/errors/custom.errors.ts - VERSIÓN COMPLETA
 export abstract class AppError extends Error {
   public abstract readonly statusCode: number;
   public abstract readonly code: string;
@@ -6,29 +5,22 @@ export abstract class AppError extends Error {
 
   constructor(message: string) {
     super(message);
-
-    // ✅ CRÍTICO: Esto es esencial para que instanceof funcione
     Object.setPrototypeOf(this, new.target.prototype);
-
-    // ✅ Mantener el stack trace
     Error.captureStackTrace?.(this, this.constructor);
-
-    // ✅ Nombre correcto
     this.name = this.constructor.name;
   }
 
   public abstract serializeErrors(): Array<{ message: string; field?: string }>;
 }
 
-// ========== NOT FOUND ERROR ==========
 export class NotFoundError extends AppError {
   public readonly statusCode = 404;
   public readonly code = 'NOT_FOUND';
   public readonly isOperational = true;
 
   constructor(
-    public readonly resource: string, //nombre del recurso
-    public readonly id?: string | number, //id del recurso
+    public readonly resource: string,
+    public readonly id?: string | number,
   ) {
     super(`${resource}${id ? ` con ID ${id}` : ''} no encontrado.`);
   }
@@ -38,15 +30,12 @@ export class NotFoundError extends AppError {
   }
 }
 
-// ========== VALIDATION ERROR ==========
 export class ValidationError extends AppError {
   public readonly statusCode = 400;
   public readonly code = 'VALIDATION_ERROR';
   public readonly isOperational = true;
 
-  constructor(
-    public errors: Array<{ field: string; message: string }>, //array de errores
-  ) {
+  constructor(public errors: Array<{ field: string; message: string }>) {
     super('Error de validación');
   }
 
@@ -55,7 +44,6 @@ export class ValidationError extends AppError {
   }
 }
 
-// ========== UNAUTHORIZED ERROR ==========
 export class UnauthorizedError extends AppError {
   public readonly statusCode = 401;
   public readonly code = 'UNAUTHORIZED';
@@ -70,7 +58,6 @@ export class UnauthorizedError extends AppError {
   }
 }
 
-// ========== FORBIDDEN ERROR ==========
 export class ForbiddenError extends AppError {
   public readonly statusCode = 403;
   public readonly code = 'FORBIDDEN';
@@ -85,15 +72,14 @@ export class ForbiddenError extends AppError {
   }
 }
 
-// ========== CONFLICT ERROR ==========
 export class ConflictError extends AppError {
   public readonly statusCode = 409;
   public readonly code = 'CONFLICT';
   public readonly isOperational = true;
 
   constructor(
-    public readonly resourceName: string, //nombre del recurso
-    public readonly conflictField: string, //campo que causa el conflicto
+    public readonly resourceName: string,
+    public readonly conflictField: string,
   ) {
     super(`${resourceName} con ${conflictField} ya existe`);
   }
@@ -108,36 +94,60 @@ export class ConflictError extends AppError {
   }
 }
 
-// ========== DATABASE ERROR ==========
 export class DatabaseError extends AppError {
   public readonly statusCode = 500;
   public readonly code = 'DATABASE_ERROR';
   public readonly isOperational = false;
 
   constructor(
-    operation: string, //operacion que causo el error
-    originalError: Error, //error original de prisma
+    operation: string,
+    originalError: Error & { code?: string },
+    public readonly prismaErrorCode?: string,
   ) {
     super(`Error en operación de base de datos: ${operation}`);
+
+    // Usar código proporcionado o extraer del error
+    if (!this.prismaErrorCode && originalError.code?.startsWith('P')) {
+      this.prismaErrorCode = originalError.code;
+    }
+
+    // Mejorar mensaje con código si existe
+    if (this.prismaErrorCode) {
+      this.message = `${this.message} (Código: ${this.prismaErrorCode})`;
+    }
+
     if (originalError.stack) {
       this.stack = originalError.stack;
     }
   }
 
   public serializeErrors() {
-    return [{ message: 'Error interno del servidor' }];
+    const baseError = { message: 'Error interno del servidor' };
+
+    if (process.env.NODE_ENV === 'development' && this.prismaErrorCode) {
+      return [
+        {
+          ...baseError,
+          metadata: {
+            prismaErrorCode: this.prismaErrorCode,
+            operation: this.message.split(': ')[1]?.replace(/ \(Código: P\d+\)/, '') || 'unknown',
+          },
+        },
+      ];
+    }
+
+    return [baseError];
   }
 }
 
-// ========== BUSINESS RULE ERROR ==========
 export class BusinessRuleError extends AppError {
   public readonly statusCode = 422;
   public readonly isOperational = true;
 
   constructor(
-    public readonly code: string, //codigo especifico del negocio
-    message: string, //mensaje descriptivo
-    public readonly metadata?: Record<string, unknown>, //Datos adicionales para el error
+    public readonly code: string,
+    message: string,
+    public readonly metadata?: Record<string, unknown>,
   ) {
     super(message);
   }
