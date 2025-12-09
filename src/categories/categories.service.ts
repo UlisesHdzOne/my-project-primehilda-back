@@ -97,7 +97,7 @@ export class CategoriesService {
         },
       });
 
-      const validCategory = this.errorUtils.validateOrThrow(category, 'Categoría', id);
+      const validCategory = this.errorUtils.validateEntityExists(category, 'Categoría', id);
 
       this.logger.log('Categoría obtenida', {
         categoryId: id,
@@ -208,7 +208,7 @@ export class CategoriesService {
         },
       });
 
-      const validCategory = this.errorUtils.validateOrThrow(
+      const validCategory = this.errorUtils.validateEntityExists(
         categoryWithProducts,
         'Categoría',
         id,

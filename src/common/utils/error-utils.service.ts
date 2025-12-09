@@ -29,7 +29,7 @@ export class ErrorUtilsService {
     }
   }
 
-  validateOrThrow<T>(entity: T | null, entityName: string, id?: string | number): T {
+  validateEntityExists<T>(entity: T | null, entityName: string, id?: string | number): T {
     if (!entity) {
       throw new NotFoundError(entityName, id);
     }
