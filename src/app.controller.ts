@@ -1,27 +1,54 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppLogger } from './core/logger/winston.config';
+import { ConfigService } from '@nestjs/config';
+
+interface HelloResponse {
+  message: string;
+  environment?: string;
+}
 
 @Controller()
 export class AppController {
   private readonly logger = new AppLogger(AppController.name);
 
-  constructor() {}
+  constructor(private readonly configService: ConfigService) {}
 
   @Get()
-  getHello(): { message: string } {
-    return { message: 'API de Biblioteca - Lista para practicar relaciones!' };
+  getHello(): HelloResponse {
+    const nodeEnv = this.configService.get('app.nodeEnv');
+    this.logger.log('Endpoint raíz accedido', { environment: nodeEnv });
+
+    const response: HelloResponse = {
+      message: 'API de Biblioteca - Lista para practicar relaciones!',
+    };
+
+    if (nodeEnv === 'development') {
+      response.environment = nodeEnv;
+    }
+
+    return response;
   }
 
   @Get('health')
   async getHealth() {
     try {
+      const dbUrl = this.configService.get('app.database.url');
+      const isDev = this.configService.get('app.nodeEnv') === 'development';
+
+      this.logger.debug('Health check ejecutado', {
+        database: dbUrl ? 'configured' : 'missing',
+        isDevelopment: isDev,
+      });
+
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),
         service: 'Biblioteca API',
-        database: 'connected',
+        environment: this.configService.get('app.nodeEnv'),
+        port: this.configService.get('app.port'),
       };
-    } catch {
+    } catch (error) {
+      this.logger.error('Health check falló', error as Error);
       return {
         status: 'error',
         timestamp: new Date().toISOString(),
@@ -32,9 +59,18 @@ export class AppController {
 
   @Get('practice')
   async practice() {
-    this.logger.log('Endpoint de práctica ejecutado');
+    // ✅ Mejor logging con metadata
+    this.logger.log('Endpoint de práctica ejecutado', {
+      timestamp: new Date().toISOString(),
+    });
+
+    const corsOrigin = this.configService.get('app.cors.origin');
+    const nodeEnv = this.configService.get('app.nodeEnv');
+
     return {
       message: '¡Listo para practicar relaciones 1:1, 1:N, N:M!',
+      environment: nodeEnv,
+      corsEnabledFor: corsOrigin,
       next_steps: [
         '1. Crear módulo "libros"',
         '2. Crear módulo "usuarios"',

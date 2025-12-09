@@ -1,50 +1,47 @@
+// src/core/logger/winston.config.ts
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isDevelopment = nodeEnv === 'development';
 
-// Formato mejorado para consola
+// Nivel configurable por ENV
+const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
+
+// ===== FORMATO CONSOLA =====
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, context, ...metadata }) => {
-    // Formato: [HH:mm:ss] LEVEL: message {metadata}
     let metaString = '';
 
-    // Solo mostrar context y metadata si existen
     const meta = { context, ...metadata };
-    if (Object.keys(meta).length > 0) {
-      // Filtrar undefined/null
-      const filteredMeta = Object.fromEntries(
-        Object.entries(meta).filter(([_, v]) => v !== undefined && v !== null),
-      );
-      if (Object.keys(filteredMeta).length > 0) {
-        metaString = ` ${JSON.stringify(filteredMeta)}`;
-      }
+    const filtered = Object.fromEntries(
+      Object.entries(meta).filter(([_, v]) => v !== undefined && v !== null),
+    );
+
+    if (Object.keys(filtered).length > 0) {
+      metaString = ` ${JSON.stringify(filtered)}`;
     }
 
     return `[${timestamp}] ${level}: ${message}${metaString}`;
   }),
 );
 
-// Formato para archivos (JSON completo)
+// ===== FORMATO ARCHIVO JSON =====
 const fileFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
 );
 
+// ===== LOGGER PRINCIPAL =====
 export const winstonLogger = winston.createLogger({
-  level: isDevelopment ? 'debug' : 'info',
+  level: logLevel,
   format: fileFormat,
   transports: [
-    // Consola con formato mejorado
-    new winston.transports.Console({
-      format: consoleFormat,
-    }),
+    new winston.transports.Console({ format: consoleFormat }),
 
-    // Archivo de errores
     new DailyRotateFile({
       filename: 'logs/error-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
@@ -54,7 +51,6 @@ export const winstonLogger = winston.createLogger({
       format: fileFormat,
     }),
 
-    // Archivo de todos los logs
     new DailyRotateFile({
       filename: 'logs/combined-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
@@ -65,13 +61,9 @@ export const winstonLogger = winston.createLogger({
   ],
 });
 
-// Clase wrapper para usar en servicios
+// ===== WRAPPER PARA SERVICIOS =====
 export class AppLogger {
-  private context: string;
-
-  constructor(context: string) {
-    this.context = context;
-  }
+  constructor(private context: string) {}
 
   log(message: string, metadata?: Record<string, unknown>): void {
     winstonLogger.info(message, { context: this.context, ...metadata });
@@ -95,5 +87,5 @@ export class AppLogger {
   }
 }
 
-// Exportar instancia global para uso rápido
+// Instancia global
 export const logger = new AppLogger('Global');
