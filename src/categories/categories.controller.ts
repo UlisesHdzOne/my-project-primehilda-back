@@ -1,5 +1,15 @@
 // categories/categories.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -20,22 +30,30 @@ export class CategoriesController {
       page: query.page,
       limit: query.limit,
       includeProducts: query.includeProducts,
+      name: query.name,
+      orderBy: query.orderBy,
+      order: query.order,
     };
     return this.categoriesService.findAll(options);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoriesService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
-    return this.categoriesService.update(+id, dto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCategoryDto) {
+    return this.categoriesService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoriesService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesService.remove(id);
+  }
+
+  @Get('search/:name')
+  findByName(@Param('name') name: string) {
+    return this.categoriesService.findByName(name);
   }
 }

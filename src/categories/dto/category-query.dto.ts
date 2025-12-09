@@ -1,4 +1,3 @@
-// categories/dto/category-query.dto.ts
 import { IsOptional, IsBoolean, IsInt, Min, Max, IsIn } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -28,4 +27,8 @@ export class CategoryQueryDto {
   @IsOptional()
   @IsIn(['asc', 'desc'])
   order?: 'asc' | 'desc' = 'asc';
+
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  name?: string;
 }

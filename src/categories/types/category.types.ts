@@ -10,7 +10,12 @@ export interface FindAllCategoriesOptions {
   page?: number;
   limit?: number;
   includeProducts?: boolean;
+  name?: string;
+  orderBy?: string;
+  order?: 'asc' | 'desc';
 }
+
+export type CategoryBase = Prisma.CategoryGetPayload<Record<string, never>>;
 
 // ✅ Estos tipos SÍ los usas en CategoriesService
 export type CategoryWithProductDetails = Prisma.CategoryGetPayload<{
@@ -36,6 +41,17 @@ export type CategoryWithProductBasic = Prisma.CategoryGetPayload<{
   };
 }>;
 
+//este es nuevo
+export type CategoryWithProductCount = Prisma.CategoryGetPayload<{
+  include: {
+    _count: {
+      select: {
+        products: true;
+      };
+    };
+  };
+}>;
+
 // ✅ Tipo para paginación genérica
 export type PaginatedResponse<T> = {
   data: T[];
@@ -50,9 +66,7 @@ export type PaginatedResponse<T> = {
 };
 
 // ✅ Tipo específico para categories
-export type PaginatedCategories = PaginatedResponse<
-  CategoryWithProductDetails | Prisma.CategoryGetPayload<Record<string, never>>
->;
+export type PaginatedCategories = PaginatedResponse<CategoryWithProductDetails | CategoryBase>;
 
-// ✅ Tipo helper para extraer productos
-export type ExtractProducts<T> = T extends { products: infer P } ? P : never;
+// // ✅ Tipo helper para extraer productos
+// export type ExtractProducts<T> = T extends { products: infer P } ? P : never;
