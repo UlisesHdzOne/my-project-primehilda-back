@@ -46,7 +46,7 @@ export class CategoriesService {
       const skip = (page - 1) * limit;
       const includeProducts = options?.includeProducts || false;
       const nameFilter = options?.name;
-      const orderBy = options?.orderBy || name;
+      const orderBy = options?.orderBy || 'name';
       const order = options?.order || 'asc';
 
       // ✅ Construir where clause dinámicamente
