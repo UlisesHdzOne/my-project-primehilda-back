@@ -13,7 +13,6 @@ async function bootstrap() {
   // Configurar global prefix
   app.setGlobalPrefix('api');
 
-  // ✅ CORREGIR ValidationPipe - La estructura debe coincidir con lo que espera el filtro
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

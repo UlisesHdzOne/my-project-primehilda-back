@@ -19,7 +19,7 @@ export class AppController {
     this.logger.log('Endpoint raíz accedido', { environment: nodeEnv });
 
     const response: HelloResponse = {
-      message: 'API de Biblioteca - Lista para practicar relaciones!',
+      message: 'API-Lista!',
     };
 
     if (nodeEnv === 'development') {
@@ -43,7 +43,7 @@ export class AppController {
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),
-        service: 'Biblioteca API',
+        service: 'API',
         environment: this.configService.get('app.nodeEnv'),
         port: this.configService.get('app.port'),
       };
@@ -68,15 +68,10 @@ export class AppController {
     const nodeEnv = this.configService.get('app.nodeEnv');
 
     return {
-      message: '¡Listo para practicar relaciones 1:1, 1:N, N:M!',
+      message: '¡Listo para practicar',
       environment: nodeEnv,
       corsEnabledFor: corsOrigin,
-      next_steps: [
-        '1. Crear módulo "libros"',
-        '2. Crear módulo "usuarios"',
-        '3. Crear módulo "préstamos" (relaciones)',
-        '4. Practicar consultas con include, where, select',
-      ],
+      next_steps: ['1. Crear módulo 1', '2. Crear módulo 2', '3. Crear módulo 3', '4. Practicar 4'],
     };
   }
 }
