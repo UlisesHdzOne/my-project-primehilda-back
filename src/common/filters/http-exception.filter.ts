@@ -1,4 +1,3 @@
-// src/common/filters/http-exception.filter.ts
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppError } from '../../core/errors/custom.errors';
@@ -192,7 +191,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const res = response as Record<string, unknown>;
 
-    // ✅ PRIMERO: Buscar 'details' directamente (tu estructura actual)
+    // ✅ PRIMERO: Buscar 'details' directamente
     if ('details' in res && Array.isArray(res.details)) {
       for (const detail of res.details) {
         if (detail && typeof detail === 'object' && 'field' in detail && 'message' in detail) {

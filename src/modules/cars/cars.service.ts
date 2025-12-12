@@ -1,14 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
 import { CreateCarInput, UpdateCarInput } from './types/car.types';
+import { ErrorUtilsService } from '@/common/utils/error-utils.service';
+import { AppLogger } from '@/core/logger/winston.config';
 
 @Injectable()
 export class CarsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly errorUtils: ErrorUtilsService,
+    private readonly logger: AppLogger, // ✅ INYECTAR LOGGER
+  ) {
+    this.logger.log('CarsService inicializado');
+  }
 
   async create(input: CreateCarInput) {
-    const car = await this.prisma.car.create({ data: input });
-    return car;
+    return this.errorUtils.withDatabaseErrorHandling('CrearCarro', async () => {
+      const car = await this.prisma.car.create({ data: input });
+      return car;
+    });
   }
 
   async findAll() {

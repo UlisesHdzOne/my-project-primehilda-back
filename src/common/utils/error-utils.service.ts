@@ -1,7 +1,11 @@
-// src/common/utils/error-utils.service.ts - VERSIÓN MEJORADA
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { DatabaseError, NotFoundError, ConflictError, AppError } from '@/core/errors/custom.errors';
+import {
+  DatabaseError,
+  NotFoundError,
+  ConflictError,
+  AppError,
+} from '../../core/errors/custom.errors';
 
 @Injectable()
 export class ErrorUtilsService {
@@ -14,11 +18,19 @@ export class ErrorUtilsService {
         throw error;
       }
 
-      // ✅ DETECCIÓN ROBUSTA DE ERRORES DE PRISMA
+      // ✅ DETECCIÓN DE ERRORES DE PRISMA
       if (this.isPrismaError(error)) {
         const prismaError = error as Error & { code?: string };
-        const errorCode = this.extractPrismaErrorCode(error); // Necesitas extraer el código
-        throw new DatabaseError(operation, prismaError, errorCode); // ✅ Pasa el código
+        const errorCode = this.extractPrismaErrorCode(error);
+
+        // ✅ CORREGIDO: Mapear P2002 a ConflictError (409)
+        if (errorCode === 'P2002') {
+          const field = this.extractFieldFromPrismaError(prismaError);
+          throw new ConflictError('Recurso', field || 'campo único');
+        }
+
+        // Otros errores de Prisma siguen siendo DatabaseError (500)
+        throw new DatabaseError(operation, prismaError, errorCode);
       }
 
       // Otros errores inesperados
@@ -26,9 +38,9 @@ export class ErrorUtilsService {
     }
   }
 
-  // ✅ NUEVO: Método para detectar errores de Prisma de forma robusta
+  // Método para detectar errores de Prisma
   private isPrismaError(error: unknown): boolean {
-    // 1. Verificar instancias específicas de Prisma
+    // Verificar instancias específicas de Prisma
     if (
       error instanceof Prisma.PrismaClientKnownRequestError ||
       error instanceof Prisma.PrismaClientUnknownRequestError ||
@@ -39,12 +51,11 @@ export class ErrorUtilsService {
       return true;
     }
 
-    // 2. Verificar por nombre de constructor (backward compatibility)
+    // Verificar por constructor name
     if (error instanceof Error) {
       const constructorName = error.constructor.name;
       if (
         constructorName.includes('PrismaClient') ||
-        constructorName.includes('Prisma') ||
         constructorName === 'PrismaClientKnownRequestError' ||
         constructorName === 'PrismaClientUnknownRequestError' ||
         constructorName === 'PrismaClientValidationError' ||
@@ -55,7 +66,7 @@ export class ErrorUtilsService {
       }
     }
 
-    // 3. Verificar mensaje de error (último recurso)
+    // Verificar mensaje de error
     if (error instanceof Error) {
       const errorMessage = error.message.toLowerCase();
       const prismaIndicators = [
@@ -64,13 +75,6 @@ export class ErrorUtilsService {
         'unique constraint',
         'foreign key constraint',
         'null constraint',
-        'violates not-null',
-        'violates unique',
-        'violates foreign key',
-        'query execution',
-        'connection',
-        'pool',
-        'migration',
       ];
 
       return prismaIndicators.some(indicator => errorMessage.includes(indicator));
@@ -79,7 +83,7 @@ export class ErrorUtilsService {
     return false;
   }
 
-  // Métodos existentes (sin cambios)
+  // Métodos públicos helpers
   validateEntityExists<T>(entity: T | null, entityName: string, id?: string | number): T {
     if (!entity) {
       throw new NotFoundError(entityName, id);
@@ -93,6 +97,7 @@ export class ErrorUtilsService {
     }
   }
 
+  // Métodos privados
   private extractPrismaErrorCode(error: unknown): string | undefined {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return error.code;
@@ -106,5 +111,29 @@ export class ErrorUtilsService {
     }
 
     return undefined;
+  }
+
+  private extractFieldFromPrismaError(error: Error & { code?: string }): string {
+    if (!error.message) return 'campo';
+
+    // Extraer campo del mensaje de error P2002
+    const patterns = [
+      /fields: \(`([^`]+)`\)/, // "fields: (`email`)"
+      /field: `([^`]+)`/, // "field: `email`"
+      /constraint "([^"]+)_key"/, // "constraint "users_email_key""
+      /Key \(([^)]+)\)/, // "Key (email)"
+      /column "([^"]+)"/, // "column "email""
+    ];
+
+    for (const pattern of patterns) {
+      const match = error.message.match(pattern);
+      if (match && match[1]) {
+        // Limpiar el nombre del campo
+        const field = match[1];
+        return field.replace(/^.*_/, '').replace(/_key$/, '');
+      }
+    }
+
+    return 'campo';
   }
 }
