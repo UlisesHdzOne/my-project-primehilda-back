@@ -1,3 +1,4 @@
+// src/core/database/prisma.service.ts - VERSIÓN CORREGIDA
 import configuration from '@/config/configuration';
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
@@ -40,6 +41,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   // Opción segura para reset en desarrollo
+  // Versión mejorada que verifica dinámicamente
   async cleanDatabase() {
     if (process.env.NODE_ENV === 'production') {
       this.logger.warn('🚫 No se permite limpiar DB en producción');
@@ -49,10 +51,44 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('🧹 Limpiando base de datos...');
 
     try {
-      // Como NO hay tablas user/product aún desde Nest, por ahora vaciamos categorías
-      await this.$transaction([this.product.deleteMany(), this.category.deleteMany()]);
+      // Lista de todos los modelos en orden inverso de dependencias
+      const deleteOperations = [];
 
-      this.logger.log('✅ Base de datos limpiada exitosamente');
+      // Verificar qué modelos existen dinámicamente
+      if ('washOrderService' in this) {
+        deleteOperations.push(this.washOrderService.deleteMany());
+      }
+
+      if ('payment' in this) {
+        deleteOperations.push(this.payment.deleteMany());
+      }
+
+      if ('washOrder' in this) {
+        deleteOperations.push(this.washOrder.deleteMany());
+      }
+
+      if ('carDetail' in this) {
+        deleteOperations.push(this.carDetail.deleteMany());
+      }
+
+      if ('car' in this) {
+        deleteOperations.push(this.car.deleteMany());
+      }
+
+      if ('serviceType' in this) {
+        deleteOperations.push(this.serviceType.deleteMany());
+      }
+
+      if ('employee' in this) {
+        deleteOperations.push(this.employee.deleteMany());
+      }
+
+      if (deleteOperations.length > 0) {
+        await this.$transaction(deleteOperations);
+        this.logger.log(`✅ Base de datos limpiada (${deleteOperations.length} modelos)`);
+      } else {
+        this.logger.warn('📝 No se encontraron modelos para limpiar');
+      }
     } catch (error) {
       this.logger.error('❌ Error limpiando base de datos:', error);
       throw error;
