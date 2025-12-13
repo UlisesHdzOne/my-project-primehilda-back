@@ -81,7 +81,8 @@ export class ConflictError extends AppError {
     public readonly resourceName: string,
     public readonly conflictField: string,
   ) {
-    super(`${resourceName} con ${conflictField} ya existe`);
+    // super(`${resourceName} con ${conflictField} ya existe`);
+    super(`Ya existe un ${resourceName} con la misma ${conflictField}`);
   }
 
   public serializeErrors() {
