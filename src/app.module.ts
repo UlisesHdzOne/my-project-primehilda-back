@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { CarsModule } from './modules/cars/cars.module';
+import { CarDetailModule } from './modules/car-detail/car-detail.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -15,7 +16,8 @@ import { CarsModule } from './modules/cars/cars.module';
     }),
     DatabaseModule,
     CommonModule,
-    CarsModule, //modulo global para interceptores y filtros
+    CarsModule,
+    CarDetailModule, //modulo global para interceptores y filtros
   ],
   controllers: [AppController],
   providers: [AppService],
