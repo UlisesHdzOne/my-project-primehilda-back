@@ -86,13 +86,11 @@ export class CarDetailService {
 
   remove(id: number) {
     return this.errorUtils.withDatabaseErrorHandling('EliminarCarDetail', async () => {
-      this.logger.debug('Buscando CarDetail para eliminar', { id });
-      const carDetail = await this.prisma.carDetail.findUnique({ where: { id } });
-      if (!carDetail) this.logger.warn('CarDetail no encontrado', { id });
-      this.errorUtils.validateEntityExists(carDetail, 'CarDetail');
+      this.logger.debug('Eliminando CarDetail', { id });
 
       const deleted = await this.prisma.carDetail.delete({ where: { id } });
       this.logger.log('CarDetail eliminado', { carDetailId: deleted.id });
+
       return deleted;
     });
   }

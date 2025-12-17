@@ -41,26 +41,26 @@ export class ServiceTypeService {
 
   update(id: number, input: UpdateServiceTypeInput) {
     return this.errorUtils.withDatabaseErrorHandling('ActualizarServiceType', async () => {
-      this.logger.debug('Buscando serviceType para actualizar', { id });
-      const serviceType = await this.prisma.serviceType.findUnique({ where: { id } });
-      if (!serviceType) this.logger.warn('serviceType no encontrado', { id });
+      this.logger.debug('Actualizando ServiceType', { id });
 
-      this.errorUtils.validateEntityExists(serviceType, 'ServiceType');
-      this.logger.log('ServiceType actalizado', { id });
-      return this.prisma.serviceType.update({ where: { id }, data: input });
+      const updated = await this.prisma.serviceType.update({
+        where: { id },
+        data: input,
+      });
+
+      this.logger.log('ServiceType actualizado', { serviceTypeId: updated.id });
+      return updated;
     });
   }
 
   remove(id: number) {
     return this.errorUtils.withDatabaseErrorHandling('EliminarServiceType', async () => {
-      this.logger.debug('Buscando serviceType  para eliminar', { id });
+      this.logger.debug('Eliminando ServiceType', { id });
 
-      const serviceType = await this.prisma.serviceType.findUnique({ where: { id } });
-      if (!serviceType) this.logger.warn('serviceType no encontrado', { id });
+      const deleted = await this.prisma.serviceType.delete({ where: { id } });
 
-      this.errorUtils.validateEntityExists(serviceType, 'ServiceType');
-      this.logger.log('ServiceType Eliminando', { id });
-      return this.prisma.serviceType.delete({ where: { id } });
+      this.logger.log('ServiceType eliminado', { serviceTypeId: deleted.id });
+      return deleted;
     });
   }
 }

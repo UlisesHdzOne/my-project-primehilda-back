@@ -53,34 +53,31 @@ export class CarsService {
 
   async update(id: number, input: UpdateCarInput) {
     return this.errorUtils.withDatabaseErrorHandling('ActualizarCarro', async () => {
-      this.logger.debug('Buscando carro para actualizar', { id });
-      const car = await this.prisma.car.findUnique({ where: { id } });
-      if (!car) this.logger.warn('Carro no encontrado', { id });
-
-      this.errorUtils.validateEntityExists(car, 'Carro');
-
       if (input.plate) {
         input.plate = this.normalizePlate(input.plate);
         await this.validatePlateUnique(input.plate, id);
       }
 
-      this.logger.log('carro actualizado', { id });
-      return this.prisma.car.update({
+      this.logger.debug('Actualizando carro', { id });
+
+      const car = await this.prisma.car.update({
         where: { id },
         data: input,
       });
+
+      this.logger.log('Carro actualizado', { id: car.id });
+      return car;
     });
   }
 
   async remove(id: number) {
     return this.errorUtils.withDatabaseErrorHandling('EliminarCarro', async () => {
-      this.logger.debug('Buscando carro para eliminar', { id });
-      const car = await this.prisma.car.findUnique({ where: { id } });
-      if (!car) this.logger.warn('Carro no encontrado', { id });
-      this.errorUtils.validateEntityExists(car, 'Carro');
+      this.logger.debug('Eliminando carro', { id });
 
-      // futura regla: no eliminar si tiene órdenes activas
-      const deleted = await this.prisma.car.delete({ where: { id } });
+      const deleted = await this.prisma.car.delete({
+        where: { id },
+      });
+
       this.logger.log('Carro eliminado', { carId: deleted.id });
       return deleted;
     });

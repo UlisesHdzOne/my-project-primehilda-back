@@ -8,6 +8,7 @@ import { CommonModule } from './common/common.module';
 import { CarsModule } from './modules/cars/cars.module';
 import { CarDetailModule } from './modules/car-detail/car-detail.module';
 import { ServiceTypeModule } from './modules/service-type/service-type.module';
+import { EmployeeModule } from './modules/employee/employee.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,7 +20,8 @@ import { ServiceTypeModule } from './modules/service-type/service-type.module';
     CommonModule,
     CarsModule,
     CarDetailModule,
-    ServiceTypeModule, //modulo global para interceptores y filtros
+    ServiceTypeModule,
+    EmployeeModule, //modulo global para interceptores y filtros
   ],
   controllers: [AppController],
   providers: [AppService],
