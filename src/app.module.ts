@@ -10,6 +10,7 @@ import { CarDetailModule } from './modules/car-detail/car-detail.module';
 import { ServiceTypeModule } from './modules/service-type/service-type.module';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { WashOrderModule } from './modules/wash-order/wash-order.module';
+import { PaymentModule } from './modules/payment/payment.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -23,7 +24,8 @@ import { WashOrderModule } from './modules/wash-order/wash-order.module';
     CarDetailModule,
     ServiceTypeModule,
     EmployeeModule,
-    WashOrderModule, //modulo global para interceptores y filtros
+    WashOrderModule,
+    PaymentModule, //modulo global para interceptores y filtros
   ],
   controllers: [AppController],
   providers: [AppService],
