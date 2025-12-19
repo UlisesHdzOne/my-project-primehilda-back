@@ -22,6 +22,11 @@ export class CarsController {
     return this.carsService.findOne(+id);
   }
 
+  @Get(':id/orders')
+  findCarOrders(@Param('id') id: string) {
+    return this.carsService.findOrdersByCar(+id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateCarDto: UpdateCarDto) {
     return this.carsService.update(+id, updateCarDto);

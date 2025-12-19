@@ -39,8 +39,9 @@ export class CarDetailService {
   }
 
   findAll() {
-    return this.errorUtils.withDatabaseErrorHandling('BuscarCarDetail', async () => {
-      this.logger.debug('buscando todos los CarDetail');
+    return this.errorUtils.withDatabaseErrorHandling('BuscarCarros', async () => {
+      this.logger.debug('buscando todos los carros');
+
       const details = await this.prisma.carDetail.findMany();
       this.logger.debug('Cantidad de CarDetail encontrados', { count: details.length });
       return details;

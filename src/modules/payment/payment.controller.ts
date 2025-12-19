@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 
@@ -9,5 +9,10 @@ export class PaymentController {
   @Post()
   create(@Body() createPaymentDto: CreatePaymentDto) {
     return this.paymentService.create(createPaymentDto);
+  }
+
+  @Get('order/:orderId')
+  findByOrder(@Param('orderId') orderId: string) {
+    return this.paymentService.findByOrder(+orderId);
   }
 }

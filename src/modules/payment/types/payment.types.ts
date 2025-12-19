@@ -1,14 +1,9 @@
-import type { PaymentMethod } from '@prisma/client';
+import type { PaymentMethod } from '@/common/enums';
 
 export type CreatePaymentInput = {
   washOrderId: number;
   amount: number;
   method: PaymentMethod;
-};
-
-//checar si no se elimina o ya no se va a usar
-export type UpdatePaymentInput = {
-  amount?: number;
 };
 
 export type PaymentWithOrder = {

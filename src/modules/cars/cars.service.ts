@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
-import { CreateCarInput, UpdateCarInput } from './types/car.types';
+import { CarWithOrders, CreateCarInput, UpdateCarInput } from './types/car.types';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
 import { AppLogger } from '@/core/logger/winston.config';
 
@@ -80,6 +80,35 @@ export class CarsService {
 
       this.logger.log('Carro eliminado', { carId: deleted.id });
       return deleted;
+    });
+  }
+
+  async findOrdersByCar(carId: number): Promise<CarWithOrders> {
+    return this.errorUtils.withDatabaseErrorHandling('BuscarOrdenesPorAuto', async () => {
+      this.logger.log('Buscando órdenes por carId', { carId });
+
+      const car = await this.prisma.car.findUnique({
+        where: { id: carId },
+        include: {
+          orders: {
+            include: {
+              employee: true,
+              services: { include: { service: true } },
+              payments: true,
+            },
+            orderBy: { date: 'desc' },
+          },
+        },
+      });
+
+      this.errorUtils.validateEntityExists(car, 'Carro');
+
+      this.logger.debug('Órdenes encontradas para el auto', {
+        carId,
+        orderCount: car!.orders?.length || 0,
+      });
+
+      return car as CarWithOrders;
     });
   }
 
