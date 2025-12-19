@@ -1,7 +1,14 @@
-import { OrderStatus } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateWashOrderServiceDto } from './create-wash-order-service.dto';
+import { OrderStatus } from '@/common/enums';
 
 export class CreateWashOrderDto {
   @IsNumber()
@@ -12,11 +19,11 @@ export class CreateWashOrderDto {
 
   @IsEnum(OrderStatus)
   @IsOptional()
-  status?: OrderStatus;
+  status?: OrderStatus = OrderStatus.PENDING;
 
   @IsArray()
-  @IsOptional()
+  @ArrayMinSize(1, { message: 'La orden debe tener al menos un servicio' })
   @ValidateNested({ each: true })
   @Type(() => CreateWashOrderServiceDto)
-  services?: CreateWashOrderServiceDto[];
+  services!: CreateWashOrderServiceDto[];
 }

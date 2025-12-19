@@ -12,6 +12,7 @@ enum OrderStatus {
   in_progress
   done
   delivered
+  cancelled
 }
 
 enum PaymentMethod {
@@ -60,7 +61,11 @@ model WashOrder {
   date       DateTime             @default(now())
   totalPrice Float
   status     OrderStatus          @default(pending)
-
+  
+  startedAt  DateTime?
+  completedAt DateTime?
+  deliveredAt DateTime?
+  
   carId      Int
   employeeId Int
 

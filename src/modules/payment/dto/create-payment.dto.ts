@@ -1,4 +1,4 @@
-import { PaymentMethod } from '@prisma/client';
+import { PaymentMethod } from '@/common/enums';
 import { IsEnum, IsInt, IsNumber, IsPositive, Min } from 'class-validator';
 
 export class CreatePaymentDto {
@@ -6,7 +6,7 @@ export class CreatePaymentDto {
   washOrderId!: number;
 
   @IsPositive()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01, { message: 'El monto debe ser mayor a 0' })
   amount!: number;
 
