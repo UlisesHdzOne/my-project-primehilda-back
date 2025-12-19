@@ -3,6 +3,9 @@ import { PrismaService } from '@/core/database/prisma.service';
 import { CarWithOrders, CreateCarInput, UpdateCarInput } from './types/car.types';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
 import { AppLogger } from '@/core/logger/winston.config';
+import { PaginatedResponse } from '@/common/types/pagination.types';
+import { Car } from '@prisma/client';
+import { PaginationUtils } from '@/common/utils/pagination.utils';
 
 @Injectable()
 export class CarsService {
@@ -29,12 +32,22 @@ export class CarsService {
     });
   }
 
-  async findAll() {
+  async findAll(page = 1, limit = 10): Promise<PaginatedResponse<Car>> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarCarros', async () => {
-      this.logger.debug('Buscando todos los carros');
-      const cars = await this.prisma.car.findMany();
-      this.logger.debug('Cantidad de carros encontrados', { count: cars.length });
-      return cars;
+      this.logger.debug('Buscando todos los carros con paginación', { page, limit });
+
+      const skip = (page - 1) * limit;
+
+      const [cars, total] = await Promise.all([
+        this.prisma.car.findMany({
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.car.count(),
+      ]);
+
+      return PaginationUtils.createResponse(cars, page, limit, total);
     });
   }
 

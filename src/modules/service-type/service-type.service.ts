@@ -3,6 +3,9 @@ import { CreateServiceTypeInput, UpdateServiceTypeInput } from './types/service-
 import { PrismaService } from '@/core/database/prisma.service';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
 import { AppLogger } from '@/core/logger/winston.config';
+import { PaginatedResponse } from '@/common/types/pagination.types';
+import { ServiceType } from '@prisma/client';
+import { PaginationUtils } from '@/common/utils/pagination.utils';
 
 @Injectable()
 export class ServiceTypeService {
@@ -19,12 +22,22 @@ export class ServiceTypeService {
     });
   }
 
-  findAll() {
+  findAll(page = 1, limit = 10): Promise<PaginatedResponse<ServiceType>> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarServiceTypes', async () => {
-      this.logger.debug('Buscando todos los ServiceTypes');
-      const serviceTypes = await this.prisma.serviceType.findMany();
-      this.logger.debug('cantidad de serviceType encontrados', { count: serviceTypes.length });
-      return serviceTypes;
+      this.logger.debug('Buscando todos los ServiceTypes con paginación', { page, limit });
+
+      const skip = (page - 1) * limit;
+
+      const [serviceTypes, total] = await Promise.all([
+        this.prisma.serviceType.findMany({
+          skip,
+          take: limit,
+          orderBy: { name: 'asc' },
+        }),
+        this.prisma.serviceType.count(),
+      ]);
+
+      return PaginationUtils.createResponse(serviceTypes, page, limit, total);
     });
   }
 

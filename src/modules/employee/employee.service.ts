@@ -3,6 +3,9 @@ import { CreateEmployeeInput, UpdateEmployeeInput } from './types/employee.types
 import { PrismaService } from '@/core/database/prisma.service';
 import { AppLogger } from '@/core/logger/winston.config';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
+import { PaginatedResponse } from '@/common/types/pagination.types';
+import { Employee } from '@prisma/client';
+import { PaginationUtils } from '@/common/utils/pagination.utils';
 
 @Injectable()
 export class EmployeeService {
@@ -21,12 +24,22 @@ export class EmployeeService {
     });
   }
 
-  findAll() {
+  findAll(page = 1, limit = 10): Promise<PaginatedResponse<Employee>> {
     return this.errorUtils.withDatabaseErrorHandling('ListarEmpleados', async () => {
-      this.logger.debug('Listando empleados');
-      const employees = await this.prisma.employee.findMany();
-      this.logger.debug('cantidad de empleados', { count: employees.length });
-      return employees;
+      this.logger.debug('Listando empleados con paginación', { page, limit });
+
+      const skip = (page - 1) * limit;
+
+      const [employees, total] = await Promise.all([
+        this.prisma.employee.findMany({
+          skip,
+          take: limit,
+          orderBy: { name: 'asc' },
+        }),
+        this.prisma.employee.count(),
+      ]);
+
+      return PaginationUtils.createResponse(employees, page, limit, total);
     });
   }
 

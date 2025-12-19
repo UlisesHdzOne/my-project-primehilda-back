@@ -4,6 +4,9 @@ import { ErrorUtilsService } from '@/common/utils/error-utils.service';
 import { PrismaService } from '@/core/database/prisma.service';
 import { BusinessRuleError } from '@/core/errors/custom.errors';
 import { Logger } from '@nestjs/common';
+import { PaginatedResponse } from '@/common/types/pagination.types';
+import { CarDetail } from '@prisma/client';
+import { PaginationUtils } from '@/common/utils/pagination.utils';
 @Injectable()
 export class CarDetailService {
   private readonly logger = new Logger(CarDetailService.name);
@@ -38,13 +41,25 @@ export class CarDetailService {
     });
   }
 
-  findAll() {
+  findAll(page = 1, limit = 10): Promise<PaginatedResponse<CarDetail>> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarCarros', async () => {
-      this.logger.debug('buscando todos los carros');
+      this.logger.debug('buscando todos los carros con paginación', { page, limit });
 
-      const details = await this.prisma.carDetail.findMany();
-      this.logger.debug('Cantidad de CarDetail encontrados', { count: details.length });
-      return details;
+      const skip = (page - 1) * limit;
+
+      const [details, total] = await Promise.all([
+        this.prisma.carDetail.findMany({
+          skip,
+          take: limit,
+          include: {
+            car: true,
+          },
+          orderBy: { id: 'desc' },
+        }),
+        this.prisma.carDetail.count(),
+      ]);
+
+      return PaginationUtils.createResponse(details, page, limit, total);
     });
   }
 

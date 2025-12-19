@@ -11,6 +11,8 @@ import {
 } from './types/wash-order.types';
 import { BusinessRuleError } from '@/core/errors/custom.errors';
 import { OrderStatus } from '@/common/enums';
+import { PaginationUtils } from '@/common/utils/pagination.utils';
+import { PaginatedResponse } from '@/common/types/pagination.types';
 
 @Injectable()
 export class WashOrderService {
@@ -109,25 +111,30 @@ export class WashOrderService {
     });
   }
 
-  async findAll(): Promise<WashOrderWithRelations[]> {
+  async findAll(page = 1, limit = 10): Promise<PaginatedResponse<WashOrderWithRelations>> {
     return this.errorUtils.withDatabaseErrorHandling('ListarWashOrders', async () => {
-      this.logger.log('Buscando todas las WashOrders');
+      this.logger.log('Buscando todas las WashOrders con paginación', { page, limit });
 
-      const washOrders = await this.prisma.washOrder.findMany({
-        include: {
-          car: true,
-          employee: true,
-          services: { include: { service: true } },
-          payments: true,
-        },
-        orderBy: { date: 'desc' },
-      });
+      const skip = (page - 1) * limit;
 
-      this.logger.debug('Cantidad de WashOrders encontradas', {
-        count: washOrders.length,
-      });
+      const [washOrders, total] = await Promise.all([
+        this.prisma.washOrder.findMany({
+          skip,
+          take: limit,
+          include: {
+            car: true,
+            employee: true,
+            services: { include: { service: true } },
+            payments: true,
+          },
+          orderBy: { date: 'desc' },
+        }),
+        this.prisma.washOrder.count(),
+      ]);
 
-      return washOrders as WashOrderWithRelations[];
+      const ordersWithRelations = washOrders as WashOrderWithRelations[];
+
+      return PaginationUtils.createResponse(ordersWithRelations, page, limit, total);
     });
   }
 
@@ -291,27 +298,35 @@ export class WashOrderService {
   }
 
   // ✅ NUEVO: Buscar órdenes por auto
-  async findOrdersByCar(carId: number): Promise<WashOrderWithRelations[]> {
+  async findOrdersByCar(
+    carId: number,
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedResponse<WashOrderWithRelations>> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarOrdenesPorAuto', async () => {
-      this.logger.log('Buscando órdenes por carId', { carId });
+      this.logger.log('Buscando órdenes por carId con paginación', { carId, page, limit });
 
-      const orders = await this.prisma.washOrder.findMany({
-        where: { carId },
-        include: {
-          car: true,
-          employee: true,
-          services: { include: { service: true } },
-          payments: true,
-        },
-        orderBy: { date: 'desc' },
-      });
+      const skip = (page - 1) * limit;
 
-      this.logger.debug('Órdenes encontradas para el auto', {
-        carId,
-        count: orders.length,
-      });
+      const [orders, total] = await Promise.all([
+        this.prisma.washOrder.findMany({
+          where: { carId },
+          skip,
+          take: limit,
+          include: {
+            car: true,
+            employee: true,
+            services: { include: { service: true } },
+            payments: true,
+          },
+          orderBy: { date: 'desc' },
+        }),
+        this.prisma.washOrder.count({ where: { carId } }),
+      ]);
 
-      return orders as WashOrderWithRelations[];
+      const ordersWithRelations = orders as WashOrderWithRelations[];
+
+      return PaginationUtils.createResponse(ordersWithRelations, page, limit, total);
     });
   }
 
