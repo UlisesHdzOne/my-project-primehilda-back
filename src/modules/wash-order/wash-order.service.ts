@@ -1,9 +1,9 @@
-// src/modules/wash-order/wash-order.service.ts - VERSIÓN CON TIPOS ESTRICTOS
+// src/modules/wash-order/wash-order.service.ts - VERSIÓN MEJORADA
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/core/database/prisma.service';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
-import { Logger } from '@nestjs/common';
+import { AppLogger } from '@/core/logger/winston.config'; // ✅ Cambiar a AppLogger
 import {
   CreateWashOrderInput,
   UpdateWashOrderInput,
@@ -17,7 +17,7 @@ import { FindWashOrdersQueryDto } from './dto/find-wash-orders-query.dto';
 
 @Injectable()
 export class WashOrderService {
-  private readonly logger = new Logger(WashOrderService.name);
+  private readonly logger = new AppLogger(WashOrderService.name); // ✅ AppLogger
 
   // FLUJO DE ESTADOS ACTUALIZADO con CANCELLED
   private readonly VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -33,9 +33,45 @@ export class WashOrderService {
     private readonly errorUtils: ErrorUtilsService,
   ) {}
 
+  // ✅ FUNCIÓN DE CONVERSIÓN (como en CarsService)
+  private toWashOrderWithRelations(
+    order: Prisma.WashOrderGetPayload<{
+      include: {
+        car: true;
+        employee: true;
+        services: { include: { service: true } };
+        payments: true;
+      };
+    }>,
+  ): WashOrderWithRelations {
+    return {
+      id: order.id,
+      date: order.date,
+      totalPrice: order.totalPrice,
+      status: order.status as OrderStatus,
+      startedAt: order.startedAt,
+      completedAt: order.completedAt,
+      deliveredAt: order.deliveredAt,
+      carId: order.carId,
+      employeeId: order.employeeId,
+      car: order.car,
+      employee: order.employee,
+      services: order.services.map(service => ({
+        id: service.id,
+        service: service.service,
+      })),
+      payments: order.payments.map(payment => ({
+        id: payment.id,
+        date: payment.date,
+        amount: payment.amount,
+        method: payment.method,
+      })),
+    };
+  }
+
   async create(input: CreateWashOrderInput): Promise<WashOrderWithRelations> {
     return this.errorUtils.withDatabaseErrorHandling('CrearWashOrder', async () => {
-      this.logger.log('Creando WashOrder', input);
+      this.logger.log('Creando WashOrder', { input });
 
       // ✅ VALIDACIÓN: Debe tener al menos 1 servicio
       if (!input.services || input.services.length === 0) {
@@ -108,7 +144,8 @@ export class WashOrderService {
         status: washOrder.status,
       });
 
-      return washOrder as WashOrderWithRelations;
+      // ✅ USAR FUNCIÓN DE CONVERSIÓN (no casting directo)
+      return this.toWashOrderWithRelations(washOrder);
     });
   }
 
@@ -153,14 +190,15 @@ export class WashOrderService {
         }
       }
 
-      // Aplicar búsqueda (si implementas búsqueda en placas, etc.)
-      // if (query.search) {
-      //   where.OR = [
-      //     { car: { plate: { contains: query.search, mode: 'insensitive' } } },
-      //     { car: { brand: { contains: query.search, mode: 'insensitive' } } },
-      //     { car: { model: { contains: query.search, mode: 'insensitive' } } },
-      //   ];
-      // }
+      // Aplicar búsqueda (opcional)
+      if (query.search) {
+        const searchTerm = query.getNormalizedSearch();
+        where.OR = [
+          { car: { plate: { contains: searchTerm!, mode: 'insensitive' } } },
+          { car: { brand: { contains: searchTerm!, mode: 'insensitive' } } },
+          { car: { model: { contains: searchTerm!, mode: 'insensitive' } } },
+        ];
+      }
 
       // Preparar orderBy
       let orderBy: Prisma.WashOrderOrderByWithRelationInput = { date: 'desc' };
@@ -178,7 +216,16 @@ export class WashOrderService {
       const skip = query.getSkip();
       const take = query.getTake();
 
-      // Ejecutar queries en paralelo
+      // ✅ DEFINIR TIPO EXPLÍCITO (como en CarsService)
+      type OrderWithRelations = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+          services: { include: { service: true } };
+          payments: true;
+        };
+      }>;
+
       const [washOrders, total] = await Promise.all([
         this.prisma.washOrder.findMany({
           where,
@@ -195,15 +242,18 @@ export class WashOrderService {
             payments: true,
           },
           orderBy,
-        }),
+        }) as Promise<OrderWithRelations[]>,
         this.prisma.washOrder.count({ where }),
       ]);
 
-      const ordersWithRelations = washOrders as WashOrderWithRelations[];
+      // ✅ USAR FUNCIÓN DE CONVERSIÓN
+      const typedOrders: WashOrderWithRelations[] = washOrders.map(order =>
+        this.toWashOrderWithRelations(order),
+      );
 
       // Usar el nuevo formatter mejorado
       return PaginationFormatter.formatEnhancedResponse(
-        ordersWithRelations,
+        typedOrders,
         query,
         total,
         '/api/wash-order',
@@ -216,7 +266,17 @@ export class WashOrderService {
     return this.errorUtils.withDatabaseErrorHandling('BuscarWashOrder', async () => {
       this.logger.log('Buscando WashOrder por id', { id });
 
-      const washOrder = await this.prisma.washOrder.findUnique({
+      // ✅ TIPO EXPLÍCITO
+      type OrderWithRelations = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+          services: { include: { service: true } };
+          payments: true;
+        };
+      }>;
+
+      const washOrder = (await this.prisma.washOrder.findUnique({
         where: { id },
         include: {
           car: true,
@@ -228,19 +288,26 @@ export class WashOrderService {
           },
           payments: true,
         },
-      });
+      })) as OrderWithRelations | null;
 
       this.errorUtils.validateEntityExists(washOrder, 'WashOrder');
-      return washOrder as WashOrderWithRelations;
+
+      // ✅ USAR FUNCIÓN DE CONVERSIÓN
+      return this.toWashOrderWithRelations(washOrder!);
     });
   }
 
   async updateStatus(orderId: number, newStatus: OrderStatus): Promise<WashOrderWithRelations> {
     return this.errorUtils.withDatabaseErrorHandling('CambiarEstadoOrden', async () => {
-      const order = await this.prisma.washOrder.findUnique({
+      // ✅ TIPO PARA ORDER CON PAGOS
+      type OrderWithPayments = Prisma.WashOrderGetPayload<{
+        include: { payments: true };
+      }>;
+
+      const order = (await this.prisma.washOrder.findUnique({
         where: { id: orderId },
         include: { payments: true },
-      });
+      })) as OrderWithPayments | null;
 
       this.errorUtils.validateEntityExists(order, 'WashOrder');
 
@@ -268,7 +335,7 @@ export class WashOrderService {
         }
       }
 
-      // ✅ PREPARAR DATA CON TIMESTAMPS - SIN USAR ANY
+      // ✅ PREPARAR DATA CON TIMESTAMPS
       type UpdateData = {
         status: OrderStatus;
         startedAt?: Date;
@@ -290,7 +357,17 @@ export class WashOrderService {
           break;
       }
 
-      const updatedOrder = await this.prisma.washOrder.update({
+      // ✅ TIPO PARA ORDER ACTUALIZADO
+      type UpdatedOrderWithRelations = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+          services: { include: { service: true } };
+          payments: true;
+        };
+      }>;
+
+      const updatedOrder = (await this.prisma.washOrder.update({
         where: { id: orderId },
         data: updateData,
         include: {
@@ -299,14 +376,14 @@ export class WashOrderService {
           services: { include: { service: true } },
           payments: true,
         },
-      });
+      })) as UpdatedOrderWithRelations;
 
       this.logger.log(`Estado de orden ${orderId} actualizado`, {
         from: order!.status,
         to: newStatus,
       });
 
-      return updatedOrder as WashOrderWithRelations;
+      return this.toWashOrderWithRelations(updatedOrder);
     });
   }
 
@@ -332,11 +409,15 @@ export class WashOrderService {
     return this.errorUtils.withDatabaseErrorHandling('EliminarWashOrder', async () => {
       this.logger.log('Eliminando WashOrder', { id });
 
-      // ✅ Primero verificar que existe
-      const order = await this.prisma.washOrder.findUnique({
+      // ✅ TIPO PARA ORDER CON PAGOS
+      type OrderWithPayments = Prisma.WashOrderGetPayload<{
+        include: { payments: true };
+      }>;
+
+      const order = (await this.prisma.washOrder.findUnique({
         where: { id },
         include: { payments: true },
-      });
+      })) as OrderWithPayments | null;
 
       this.errorUtils.validateEntityExists(order, 'WashOrder');
 
@@ -354,25 +435,45 @@ export class WashOrderService {
         where: { orderId: id },
       });
 
-      const deleted = await this.prisma.washOrder.delete({
+      // ✅ TIPO PARA ORDER ELIMINADO
+      type DeletedOrder = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+        };
+      }>;
+
+      const deleted = (await this.prisma.washOrder.delete({
         where: { id },
         include: {
           car: true,
           employee: true,
         },
-      });
+      })) as DeletedOrder;
 
       this.logger.log('WashOrder eliminada', {
         orderId: deleted.id,
         car: deleted.car.plate,
       });
 
-      return deleted as WashOrderWithRelations;
+      // ✅ CONVERTIR A WashOrderWithRelations
+      return {
+        id: deleted.id,
+        date: deleted.date,
+        totalPrice: deleted.totalPrice,
+        status: deleted.status as OrderStatus,
+        startedAt: deleted.startedAt,
+        completedAt: deleted.completedAt,
+        deliveredAt: deleted.deliveredAt,
+        carId: deleted.carId,
+        employeeId: deleted.employeeId,
+        car: deleted.car,
+        employee: deleted.employee,
+        services: [],
+        payments: [],
+      };
     });
   }
-
-  // ✅ NUEVO: Buscar órdenes por auto
-  // En wash-order.service.ts - REEMPLAZAR el método findOrdersByCar COMPLETAMENTE:
 
   async findOrdersByCar(
     carId: number,
@@ -388,7 +489,7 @@ export class WashOrderService {
 
       // Preparar where clause con filtros
       const where: Prisma.WashOrderWhereInput = {
-        carId, // Filtro fijo por carId
+        carId,
       };
 
       // Aplicar filtro por status (además del carId)
@@ -401,7 +502,7 @@ export class WashOrderService {
         where.employeeId = query.employeeId;
       }
 
-      // Aplicar filtro por rango de fechas - CORREGIDO
+      // Aplicar filtro por rango de fechas
       if (query.dateFrom || query.dateTo) {
         where.date = {};
 
@@ -425,18 +526,25 @@ export class WashOrderService {
 
       const sortParams = query.getSortParams();
       if (sortParams) {
-        // Validar campo de ordenamiento permitido
-        const allowedSortFields = ['id', 'date', 'totalPrice', 'status'];
-        if (allowedSortFields.includes(sortParams.field)) {
+        const allowedFields = ['id', 'date', 'totalPrice', 'status'];
+        if (allowedFields.includes(sortParams.field)) {
           orderBy = { [sortParams.field]: sortParams.direction };
         }
       }
 
-      // Calcular paginación
       const skip = query.getSkip();
       const take = query.getTake();
 
-      // Ejecutar queries en paralelo
+      // ✅ TIPO EXPLÍCITO
+      type OrderWithRelations = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+          services: { include: { service: true } };
+          payments: true;
+        };
+      }>;
+
       const [orders, total] = await Promise.all([
         this.prisma.washOrder.findMany({
           where,
@@ -453,15 +561,17 @@ export class WashOrderService {
             payments: true,
           },
           orderBy,
-        }),
+        }) as Promise<OrderWithRelations[]>,
         this.prisma.washOrder.count({ where }),
       ]);
 
-      const ordersWithRelations = orders as WashOrderWithRelations[];
+      // ✅ USAR FUNCIÓN DE CONVERSIÓN
+      const typedOrders: WashOrderWithRelations[] = orders.map(order =>
+        this.toWashOrderWithRelations(order),
+      );
 
-      // Usar el nuevo formatter mejorado
       return PaginationFormatter.formatEnhancedResponse(
-        ordersWithRelations,
+        typedOrders,
         query,
         total,
         `/api/wash-order/car/${carId}`,
@@ -470,7 +580,6 @@ export class WashOrderService {
     });
   }
 
-  // ✅ NUEVO: Obtener estadísticas básicas
   async getDashboardStats(): Promise<{
     totalOrders: number;
     totalRevenue: number;
@@ -478,6 +587,16 @@ export class WashOrderService {
     recentOrders: WashOrderWithRelations[];
   }> {
     return this.errorUtils.withDatabaseErrorHandling('ObtenerEstadisticas', async () => {
+      // ✅ TIPO PARA ORDENES RECIENTES
+      type RecentOrder = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+          services: { include: { service: true } };
+          payments: true;
+        };
+      }>;
+
       const [totalOrders, totalRevenueResult, ordersByStatus, recentOrders] = await Promise.all([
         this.prisma.washOrder.count(),
         this.prisma.washOrder.aggregate({
@@ -496,20 +615,25 @@ export class WashOrderService {
             payments: true,
           },
           orderBy: { date: 'desc' },
-        }),
+        }) as Promise<RecentOrder[]>,
       ]);
 
-      // Formatear estadísticas - con tipo explícito
+      // Formatear estadísticas
       const statusCounts: Record<string, number> = {};
       ordersByStatus.forEach(item => {
         statusCounts[item.status] = item._count.id;
       });
 
+      // ✅ CONVERTIR ORDENES RECIENTES
+      const typedRecentOrders: WashOrderWithRelations[] = recentOrders.map(order =>
+        this.toWashOrderWithRelations(order),
+      );
+
       return {
         totalOrders,
         totalRevenue: totalRevenueResult._sum.totalPrice || 0,
         ordersByStatus: statusCounts,
-        recentOrders: recentOrders as WashOrderWithRelations[],
+        recentOrders: typedRecentOrders,
       };
     });
   }

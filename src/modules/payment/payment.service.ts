@@ -1,24 +1,24 @@
-// src/modules/payment/payment.service.ts - VERSIÓN CORREGIDA
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
+import { AppLogger } from '@/core/logger/winston.config';
 import { BusinessRuleError } from '@/core/errors/custom.errors';
-import { Logger } from '@nestjs/common';
-import { CreatePaymentInput } from './types/payment.types';
-import { OrderStatus } from '@/common/enums';
+import { CreatePaymentInput, OrderPaymentsSummary } from './types/payment.types';
+import { OrderStatus, PaymentMethod } from '@/common/enums';
 
 @Injectable()
 export class PaymentService {
-  private readonly logger = new Logger(PaymentService.name);
+  private readonly logger = new AppLogger(PaymentService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly errorUtils: ErrorUtilsService,
   ) {}
 
+  // ✅ MÉTODO create - SIMPLE Y FUNCIONAL
   async create(input: CreatePaymentInput) {
     return this.errorUtils.withDatabaseErrorHandling('CrearPayment', async () => {
-      this.logger.log('Creando pago', input);
+      this.logger.log('Creando pago', { input });
 
       // Obtener orden con pagos
       const order = await this.prisma.washOrder.findUnique({
@@ -28,7 +28,7 @@ export class PaymentService {
 
       this.errorUtils.validateEntityExists(order, 'WashOrder');
 
-      // ✅✅✅ REGLA CORREGIDA: Permitir pagos en PENDING, solo bloquear terminadas
+      // Validar estado
       const invalidStatuses = [OrderStatus.DELIVERED, OrderStatus.CANCELLED];
       if (invalidStatuses.includes(order!.status as OrderStatus)) {
         throw new BusinessRuleError(
@@ -36,26 +36,23 @@ export class PaymentService {
           `No se puede pagar una orden ${order!.status}`,
         );
       }
-      // ❌ ELIMINAR: La validación que bloquea PENDING
 
-      // Calcular pagos existentes y saldo pendiente
+      // Calcular saldo
       const totalPaid = order!.payments.reduce((sum, p) => sum + p.amount, 0);
       const remaining = order!.totalPrice - totalPaid;
 
-      // Validar que el pago no exceda lo restante
       if (input.amount > remaining) {
         throw new BusinessRuleError(
           'PAYMENT_EXCEEDS_REMAINING',
-          `El pago excede el saldo pendiente. ` + `Máximo permitido: $${remaining.toFixed(2)}`,
+          `El pago excede el saldo pendiente. Máximo: $${remaining.toFixed(2)}`,
         );
       }
 
-      // Validar monto mínimo
       if (input.amount < 0.01) {
-        throw new BusinessRuleError('INVALID_AMOUNT', 'El monto mínimo de pago es $0.01');
+        throw new BusinessRuleError('INVALID_AMOUNT', 'El monto mínimo es $0.01');
       }
 
-      // Crear el pago
+      // Crear pago
       const payment = await this.prisma.payment.create({
         data: {
           orderId: input.washOrderId,
@@ -64,11 +61,10 @@ export class PaymentService {
         },
       });
 
-      // ✅ LÓGICA MEJORADA: Manejo automático de estados
+      // Manejo automático de estados
       const newTotalPaid = totalPaid + input.amount;
       const isFullyPaid = newTotalPaid >= order!.totalPrice;
 
-      // Si se pagó completamente y la orden está PENDING → pasar a IN_PROGRESS
       if (isFullyPaid && order!.status === OrderStatus.PENDING) {
         await this.prisma.washOrder.update({
           where: { id: order!.id },
@@ -77,45 +73,79 @@ export class PaymentService {
             startedAt: new Date(),
           },
         });
-        this.logger.log(
-          `Orden ${order!.id} pagada completamente, pasando automáticamente a IN_PROGRESS`,
-        );
+        this.logger.log(`Orden ${order!.id} pagada completamente → IN_PROGRESS`);
       }
 
-      // Si se pagó completamente y la orden está DONE → log solamente
-      // (la entrega requiere acción explícita via updateStatus)
       if (isFullyPaid && order!.status === OrderStatus.DONE) {
-        this.logger.log(`Orden ${order!.id} completamente pagada, lista para ser entregada`);
+        this.logger.log(`Orden ${order!.id} pagada completamente, lista para entrega`);
       }
 
+      this.logger.log('Pago creado exitosamente', { paymentId: payment.id });
       return payment;
     });
   }
 
-  async findByOrder(orderId: number) {
+  // ✅ MÉTODO findByOrder - SIMPLE Y FUNCIONAL
+  // En el método findByOrder - VERSIÓN CORREGIDA
+  async findByOrder(orderId: number): Promise<OrderPaymentsSummary> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarPagosPorOrden', async () => {
-      const payments = await this.prisma.payment.findMany({
-        where: { orderId },
-        orderBy: { date: 'desc' },
-      });
+      this.logger.log('Buscando pagos por orden', { orderId });
 
-      const order = await this.prisma.washOrder.findUnique({
-        where: { id: orderId },
-      });
+      const [payments, order] = await Promise.all([
+        this.prisma.payment.findMany({
+          where: { orderId },
+          orderBy: { date: 'desc' },
+        }),
+        this.prisma.washOrder.findUnique({
+          where: { id: orderId },
+        }),
+      ]);
 
-      if (!order) {
-        throw this.errorUtils.validateEntityExists(null, 'WashOrder');
-      }
+      this.errorUtils.validateEntityExists(order, 'WashOrder');
 
       const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const remaining = order!.totalPrice - totalPaid;
 
-      return {
+      // ✅ CONVERSIÓN EXPLÍCITA del enum de Prisma a tu enum
+      const summary: OrderPaymentsSummary = {
         orderId,
-        orderTotal: order.totalPrice,
+        orderTotal: order!.totalPrice,
         totalPaid,
-        remaining: order.totalPrice - totalPaid,
-        payments,
+        remaining,
+        payments: payments.map(payment => {
+          // Convertir 'cash'/'card' de Prisma a PaymentMethod.CASH/PaymentMethod.CARD
+          let method: PaymentMethod;
+
+          if (payment.method === 'cash') {
+            method = PaymentMethod.CASH;
+          } else if (payment.method === 'card') {
+            method = PaymentMethod.CARD;
+          } else {
+            // Fallback seguro
+            method = PaymentMethod.CASH;
+            this.logger.warn(
+              `Método de pago desconocido: ${payment.method}, usando CASH por defecto`,
+            );
+          }
+
+          return {
+            id: payment.id,
+            date: payment.date,
+            amount: payment.amount,
+            method: method, // ✅ Ahora es del tipo correcto
+            orderId: payment.orderId,
+          };
+        }),
       };
+
+      this.logger.debug('Resumen de pagos obtenido', {
+        orderId,
+        totalPaid,
+        remaining,
+        paymentCount: payments.length,
+      });
+
+      return summary;
     });
   }
 }

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { ServiceTypeService } from './service-type.service';
 import { CreateServiceTypeDto } from './dto/create-service-type.dto';
 import { UpdateServiceTypeDto } from './dto/update-service-type.dto';
+import { FindServiceTypesQueryDto } from './dto/find-service-types-query.dto';
 
 @Controller('service-type')
 export class ServiceTypeController {
@@ -13,8 +14,13 @@ export class ServiceTypeController {
   }
 
   @Get()
-  findAll() {
-    return this.serviceTypeService.findAll();
+  findAll(query: FindServiceTypesQueryDto) {
+    return this.serviceTypeService.findAll(query);
+  }
+
+  @Get('stats') // ✅ Nuevo endpoint para estadísticas
+  getServiceStats() {
+    return this.serviceTypeService.getServiceStatistics();
   }
 
   @Get(':id')

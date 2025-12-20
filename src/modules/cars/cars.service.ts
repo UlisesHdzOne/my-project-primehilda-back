@@ -1,15 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/core/database/prisma.service';
-import { CarWithOrders, CreateCarInput, UpdateCarInput } from './types/car.types';
+import { CreateCarInput, UpdateCarInput } from './types/car.types';
 import { ErrorUtilsService } from '@/common/utils/error-utils.service';
-import { AppLogger } from '@/core/logger/winston.config';
-import { PaginatedResponse } from '@/common/types/pagination.types';
-import { Car } from '@prisma/client';
-import { PaginationUtils } from '@/common/utils/pagination.utils';
+import { AppLogger } from '@/core/logger/winston.config'; // ✅ MANTENER AppLogger
+import { Car, Prisma } from '@prisma/client';
+import { EnhancedPaginatedResponse } from '@/common/types/pagination.types';
+import { PaginationFormatter } from '@/common/utils/pagination-formatter.utils';
+import { FindWashOrdersQueryDto } from '@/modules/wash-order/dto/find-wash-orders-query.dto';
+import { FindCarsQueryDto } from './dto/find-cars-query.dto';
+import {
+  toWashOrderWithCarResponse,
+  WashOrderWithCarResponse,
+} from '@/shared/types/wash-order-response.types';
 
 @Injectable()
 export class CarsService {
-  private readonly logger = new AppLogger('CarsService');
+  private readonly logger = new AppLogger(CarsService.name); // ✅ MANTENER AppLogger
   constructor(
     private readonly prisma: PrismaService,
     private readonly errorUtils: ErrorUtilsService,
@@ -22,7 +28,7 @@ export class CarsService {
 
       await this.validatePlateUnique(normalizedPlate);
 
-      this.logger.log('carro creado', { plate: normalizedPlate });
+      this.logger.log('Carro creado', { plate: normalizedPlate });
       return this.prisma.car.create({
         data: {
           ...input,
@@ -32,22 +38,61 @@ export class CarsService {
     });
   }
 
-  async findAll(page = 1, limit = 10): Promise<PaginatedResponse<Car>> {
+  async findAll(query: FindCarsQueryDto): Promise<EnhancedPaginatedResponse<Car>> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarCarros', async () => {
-      this.logger.debug('Buscando todos los carros con paginación', { page, limit });
+      this.logger.log('Buscando carros con paginación mejorada', {
+        page: query.page,
+        limit: query.limit,
+        search: query.search,
+        filters: query.getAppliedFilters(),
+      });
 
-      const skip = (page - 1) * limit;
+      // Preparar where clause con búsqueda
+      const where: Prisma.CarWhereInput = {};
+
+      if (query.search) {
+        const searchTerm = query.getNormalizedSearch();
+        where.OR = [
+          { plate: { contains: searchTerm!, mode: 'insensitive' } },
+          { brand: { contains: searchTerm!, mode: 'insensitive' } },
+          { model: { contains: searchTerm!, mode: 'insensitive' } },
+          { color: { contains: searchTerm!, mode: 'insensitive' } },
+        ];
+      }
+
+      // Preparar orderBy
+      let orderBy: Prisma.CarOrderByWithRelationInput = { createdAt: 'desc' };
+      const sortParams = query.getSortParams();
+      if (sortParams) {
+        const allowedFields = ['id', 'plate', 'brand', 'model', 'color', 'createdAt'];
+        if (allowedFields.includes(sortParams.field)) {
+          orderBy = { [sortParams.field]: sortParams.direction };
+        }
+      }
+
+      const skip = query.getSkip();
+      const take = query.getTake();
 
       const [cars, total] = await Promise.all([
         this.prisma.car.findMany({
+          where,
           skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
+          take,
+          include: {
+            detail: true,
+          },
+          orderBy,
         }),
-        this.prisma.car.count(),
+        this.prisma.car.count({ where }),
       ]);
 
-      return PaginationUtils.createResponse(cars, page, limit, total);
+      return PaginationFormatter.formatEnhancedResponse(
+        cars,
+        query,
+        total,
+        '/api/cars',
+        query.getAppliedFilters(),
+      );
     });
   }
 
@@ -58,7 +103,6 @@ export class CarsService {
 
       if (!car) this.logger.warn('Carro no encontrado', { id });
 
-      // validateEntityExists → exige que car EXISTA
       this.errorUtils.validateEntityExists(car, 'Carro');
       return car;
     });
@@ -96,32 +140,112 @@ export class CarsService {
     });
   }
 
-  async findOrdersByCar(carId: number): Promise<CarWithOrders> {
-    return this.errorUtils.withDatabaseErrorHandling('BuscarOrdenesPorAuto', async () => {
-      this.logger.log('Buscando órdenes por carId', { carId });
+  // ✅ MÉTODO ACTUALIZADO CON PAGINACIÓN
+  // En cars.service.ts - MÉTODO CORREGIDO 100%
 
-      const car = await this.prisma.car.findUnique({
-        where: { id: carId },
-        include: {
-          orders: {
-            include: {
-              employee: true,
-              services: { include: { service: true } },
-              payments: true,
-            },
-            orderBy: { date: 'desc' },
-          },
-        },
+  async findOrdersByCar(
+    carId: number,
+    query?: FindWashOrdersQueryDto,
+  ): Promise<EnhancedPaginatedResponse<WashOrderWithCarResponse>> {
+    return this.errorUtils.withDatabaseErrorHandling('BuscarOrdenesPorAuto', async () => {
+      this.logger.log('Buscando órdenes por carId con paginación', {
+        carId,
+        filters: query?.getAppliedFilters() || [],
       });
 
+      // Validar que el carro existe
+      const car = await this.prisma.car.findUnique({ where: { id: carId } });
       this.errorUtils.validateEntityExists(car, 'Carro');
 
-      this.logger.debug('Órdenes encontradas para el auto', {
-        carId,
-        orderCount: car!.orders?.length || 0,
-      });
+      // Usar el query o crear uno por defecto
+      const paginationQuery = query || new FindWashOrdersQueryDto();
+      paginationQuery.carId = carId;
 
-      return car as CarWithOrders;
+      const where: Prisma.WashOrderWhereInput = { carId };
+
+      // Aplicar filtros del query
+      if (paginationQuery.status) {
+        where.status = paginationQuery.status;
+      }
+
+      if (paginationQuery.employeeId) {
+        where.employeeId = paginationQuery.employeeId;
+      }
+
+      // Filtro por fechas
+      if (paginationQuery.dateFrom || paginationQuery.dateTo) {
+        where.date = {};
+
+        if (paginationQuery.dateFrom) {
+          const dateFrom = paginationQuery.getDateFromAsDate();
+          if (dateFrom) {
+            where.date.gte = dateFrom;
+          }
+        }
+
+        if (paginationQuery.dateTo) {
+          const dateTo = paginationQuery.getDateToAsDate();
+          if (dateTo) {
+            where.date.lte = dateTo;
+          }
+        }
+      }
+
+      // Preparar orderBy
+      let orderBy: Prisma.WashOrderOrderByWithRelationInput = { date: 'desc' };
+      const sortParams = paginationQuery.getSortParams();
+      if (sortParams) {
+        const allowedFields = ['id', 'date', 'totalPrice', 'status'];
+        if (allowedFields.includes(sortParams.field)) {
+          orderBy = { [sortParams.field]: sortParams.direction };
+        }
+      }
+
+      const skip = paginationQuery.getSkip();
+      const take = paginationQuery.getTake();
+
+      // ✅ DEFINIR EL TIPO DE LA QUERY EXPLÍCITAMENTE
+      type OrderWithRelations = Prisma.WashOrderGetPayload<{
+        include: {
+          car: true;
+          employee: true;
+          services: { include: { service: true } };
+          payments: true;
+        };
+      }>;
+
+      const [orders, total] = await Promise.all([
+        this.prisma.washOrder.findMany({
+          where,
+          skip,
+          take,
+          include: {
+            car: true,
+            employee: true,
+            services: {
+              include: {
+                service: true,
+              },
+            },
+            payments: true,
+          },
+          orderBy,
+        }) as Promise<OrderWithRelations[]>, // ✅ Type assertion explícita
+        this.prisma.washOrder.count({ where }),
+      ]);
+
+      // ✅ CONVERSIÓN SEGURA SIN `any`
+      const typedOrders: WashOrderWithCarResponse[] = orders.map(order =>
+        toWashOrderWithCarResponse(order),
+      );
+
+      return PaginationFormatter.formatEnhancedResponse(
+        typedOrders,
+        paginationQuery,
+        total,
+        `/api/cars/${carId}/orders`,
+        paginationQuery.getAppliedFilters(),
+      );
     });
   }
 
@@ -134,15 +258,13 @@ export class CarsService {
   }
 
   private async validatePlateUnique(plate: string, currentId?: number) {
-    // busca un Car por placa (placa es UNIQUE en el sistema)
     const existsCar = await this.prisma.car.findUnique({ where: { plate } });
 
     if (existsCar && existsCar.id !== currentId) {
-      this.logger.warn('validacion de placa falla:ya existe un carro con la misma placa', {
+      this.logger.warn('Validación de placa fallida: ya existe un carro con la misma placa', {
         plate,
         existsCarId: existsCar.id,
       });
-      // checkConflict → lanza error SI la placa EXISTE (hay conflicto)
       this.errorUtils.checkConflict(existsCar, 'Carro', 'placa');
     }
   }

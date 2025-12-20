@@ -1,3 +1,4 @@
+// src/modules/payment/types/payment.types.ts
 import type { PaymentMethod } from '@/common/enums';
 
 export type CreatePaymentInput = {
@@ -19,11 +20,26 @@ export type PaymentWithOrder = {
   };
 };
 
-// NUEVO: Type para respuesta de pagos por orden
 export type OrderPaymentsSummary = {
   orderId: number;
   orderTotal: number;
   totalPaid: number;
   remaining: number;
   payments: PaymentWithOrder[];
+};
+
+// ✅ Nuevo tipo para pagos con detalles extendidos
+export type PaymentWithDetails = PaymentWithOrder & {
+  order?: {
+    id: number;
+    totalPrice: number;
+    status: string;
+    car?: {
+      plate: string;
+      brand: string;
+    };
+    employee?: {
+      name: string;
+    };
+  };
 };
