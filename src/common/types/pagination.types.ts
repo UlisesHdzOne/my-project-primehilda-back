@@ -1,3 +1,6 @@
+export * from './pagination-response.types';
+
+// Mantener tipos básicos existentes
 export interface PaginationMeta {
   page: number;
   limit: number;
@@ -12,11 +15,9 @@ export interface PaginatedResponse<T> {
   meta: PaginationMeta;
 }
 
-// Tipo para filtros comunes
 export interface BaseFilters {
   page?: number;
   limit?: number;
 }
 
-// Helper para crear tipos paginados de Prisma
 export type Paginated<T> = Promise<PaginatedResponse<T>>;
