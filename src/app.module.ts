@@ -5,6 +5,7 @@ import { DatabaseModule } from './core/database/database.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CommonModule } from './common/common.module';
     }),
     DatabaseModule,
     CommonModule,
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

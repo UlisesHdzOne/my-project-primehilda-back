@@ -1,3 +1,4 @@
+// prisma/schema.prisma - BUSINESS ENGLISH
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,114 +8,133 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ENUMS para estados (en español para la app)
-enum OrderStatus {
-  PENDIENTE      @map("pending")
-  EN_PROCESO     @map("in_progress") 
-  TERMINADO      @map("done")
-  LISTO_ENTREGA  @map("ready_for_delivery")
-  ENTREGADO      @map("delivered")
-  CANCELADO      @map("cancelled")
+// ==================== BUSINESS-ORIENTED ENUMS ====================
+enum WashStatus {
+  WAITING        // Vehicle arrived, waiting turn
+  WASHING        // Currently being washed
+  COMPLETED      // Wash finished
+  READY          // Ready for customer pickup
+  DELIVERED      // Customer picked up the vehicle
+  CANCELLED      // Wash cancelled
 }
 
 enum PaymentMethod {
-  EFECTIVO  @map("cash")
-  TARJETA   @map("card")
-  TRANSFERENCIA @map("transfer")
+  CASH
+  CARD
+  TRANSFER
 }
 
-// MODELOS PRINCIPALES
-model Car {
-  id          Int      @id @default(autoincrement())
-  plate       String   @unique  // Placa única
-  brand       String
-  model       String
-  color       String
-  isActive    Boolean  @default(true)  // Para "archivar"
-  notes       String?  // Notas del auto (rayones, etc.)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ==================== BUSINESS MODELS ====================
 
-  orders      Order[]  // Relación 1:N
-
-  @@map("cars")
+// A VEHICLE that comes for washing
+model Vehicle {
+  id          Int         @id @default(autoincrement())
+  plateNumber String      @unique @db.VarChar(15)  // ABC-123
+  brand       String      @db.VarChar(50)          // Toyota, Honda
+  model       String      @db.VarChar(50)          // Corolla, Civic
+  color       String      @db.VarChar(30)
+  isActive    Boolean     @default(true)           // Soft delete
+  notes       String?     @db.Text                 // "Scratch on door"
+  registeredAt DateTime   @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  washes      Wash[]      // A vehicle can have many washes
+  
+  @@map("vehicles")
+  @@index([plateNumber])
+  @@index([isActive])
+  @@index([registeredAt])
 }
 
-model Service {
-  id          Int      @id @default(autoincrement())
-  name        String   // "Lavado exterior básico"
-  description String?  // "Incluye lavado de carrocería y llantas"
-  price       Float
-  duration    Int      // Duración en minutos
-  category    String   // "exterior", "interior", "premium"
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  orderItems  OrderItem[]  // Relación N:M a través de OrderItem
-
-  @@map("services")
+// SERVICES we offer (catalog)
+model WashService {
+  id          Int         @id @default(autoincrement())
+  name        String      @db.VarChar(100)         // "Premium Exterior Wash"
+  description String?     @db.Text
+  price       Decimal     @db.Decimal(10, 2)       // Monetary precision
+  duration    Int                                  // Minutes to complete
+  category    String      @db.VarChar(30)          // "exterior", "interior", "complete"
+  isActive    Boolean     @default(true)           // To deactivate services
+  createdAt   DateTime    @default(now())
+  
+  // Relations
+  washItems   WashItem[]  // A service can be in many washes
+  
+  @@map("wash_services")
   @@index([category])
   @@index([isActive])
+  @@index([price])
 }
 
-model Order {
-  id           Int       @id @default(autoincrement())
-  orderNumber  String    @unique  // "ORD-2025-001"
-  carId        Int
-  status       OrderStatus @default(PENDIENTE)
+// A WASH ORDER (core business model)
+model Wash {
+  id          Int           @id @default(autoincrement())
+  washNumber  String        @unique @db.VarChar(20)  // WASH-2024-001
+  vehicleId   Int
+  status      WashStatus    @default(WAITING)
   
-  // Timestamps del flujo
-  createdAt    DateTime  @default(now())
-  startedAt    DateTime?
-  completedAt  DateTime?
-  readyAt      DateTime?  // Cuando está listo para entrega
-  deliveredAt  DateTime?
-  cancelledAt  DateTime?
+  // Timeline
+  arrivedAt   DateTime      @default(now())     // When vehicle arrived
+  startedAt   DateTime?                         // When wash started
+  completedAt DateTime?                         // When wash finished
+  readyAt     DateTime?                         // When ready for pickup
+  deliveredAt DateTime?                         // When customer picked up
+  cancelledAt DateTime?                         // If cancelled
   
-  // Precios
-  subtotal     Float
-  discount     Float? @default(0)
-  total        Float
+  // Financial info
+  subtotal    Decimal       @db.Decimal(10, 2)
+  discount    Decimal?      @db.Decimal(10, 2) @default(0)
+  total       Decimal       @db.Decimal(10, 2)
   
-  // Notas
-  notes        String?   // "Cliente pidió no lavar motor"
+  // Notes for THIS specific wash
+  washNotes   String?       @db.Text           // "Don't wash engine", "Customer prefers wax X"
   
-  // Relaciones
-  car          Car       @relation(fields: [carId], references: [id])
-  items        OrderItem[]
-  payments     Payment[]
+  // Relations
+  vehicle     Vehicle       @relation(fields: [vehicleId], references: [id])
+  items       WashItem[]
+  payments    Payment[]
   
-  @@map("orders")
-  @@index([carId])
+  @@map("washes")
+  @@index([vehicleId])
   @@index([status])
-  @@index([createdAt])
+  @@index([arrivedAt])
+  @@index([washNumber])
 }
 
-model OrderItem {
-  id         Int     @id @default(autoincrement())
-  orderId    Int
-  serviceId  Int
-  quantity   Int     @default(1)
-  price      Float   // Precio al momento de la orden
+// ITEMS (services) in each wash
+model WashItem {
+  id          Int     @id @default(autoincrement())
+  washId      Int
+  serviceId   Int
+  quantity    Int     @default(1)
+  price       Decimal @db.Decimal(10, 2)  // Price at time of wash
   
-  order      Order   @relation(fields: [orderId], references: [id])
-  service    Service @relation(fields: [serviceId], references: [id])
+  // Relations
+  wash        Wash        @relation(fields: [washId], references: [id])
+  service     WashService @relation(fields: [serviceId], references: [id])
   
-  @@map("order_items")
-  @@unique([orderId, serviceId])
+  @@map("wash_items")
+  @@unique([washId, serviceId])  // Don't duplicate services in a wash
+  @@index([washId])
+  @@index([serviceId])
 }
 
+// PAYMENTS for a wash
 model Payment {
-  id        Int           @id @default(autoincrement())
-  orderId   Int
-  amount    Float
-  method    PaymentMethod
-  reference String?       // Referencia de pago
-  notes     String?       // "Pago con tarjeta terminación 1234"
-  createdAt DateTime      @default(now())
+  id          Int           @id @default(autoincrement())
+  washId      Int
+  amount      Decimal       @db.Decimal(10, 2)
+  method      PaymentMethod
+  reference   String?       @db.VarChar(50)    // "REC-001", "TRF-123"
+  notes       String?       @db.Text          // "Payment with card ending 1234"
+  paidAt      DateTime      @default(now())
   
-  order     Order         @relation(fields: [orderId], references: [id])
+  // Relation
+  wash        Wash          @relation(fields: [washId], references: [id])
   
   @@map("payments")
-  @@index([orderId])
+  @@index([washId])
+  @@index([paidAt])
+  @@index([method])
 }
