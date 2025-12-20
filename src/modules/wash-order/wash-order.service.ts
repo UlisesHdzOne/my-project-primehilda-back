@@ -11,8 +11,9 @@ import {
 } from './types/wash-order.types';
 import { BusinessRuleError } from '@/core/errors/custom.errors';
 import { OrderStatus } from '@/common/enums';
-import { PaginationUtils } from '@/common/utils/pagination.utils';
-import { PaginatedResponse } from '@/common/types/pagination.types';
+import { EnhancedPaginatedResponse } from '@/common/types/pagination.types';
+import { PaginationFormatter } from '@/common/utils/pagination-formatter.utils';
+import { FindWashOrdersQueryDto } from './dto/find-wash-orders-query.dto';
 
 @Injectable()
 export class WashOrderService {
@@ -111,30 +112,103 @@ export class WashOrderService {
     });
   }
 
-  async findAll(page = 1, limit = 10): Promise<PaginatedResponse<WashOrderWithRelations>> {
+  async findAll(
+    query: FindWashOrdersQueryDto,
+  ): Promise<EnhancedPaginatedResponse<WashOrderWithRelations>> {
     return this.errorUtils.withDatabaseErrorHandling('ListarWashOrders', async () => {
-      this.logger.log('Buscando todas las WashOrders con paginación', { page, limit });
+      this.logger.log('Buscando todas las WashOrders con paginación mejorada', {
+        page: query.page,
+        limit: query.limit,
+        filters: query.getAppliedFilters(),
+      });
 
-      const skip = (page - 1) * limit;
+      // Preparar where clause con filtros
+      const where: Prisma.WashOrderWhereInput = {};
 
+      // Aplicar filtro por status
+      if (query.status) {
+        where.status = query.status;
+      }
+
+      // Aplicar filtro por carId
+      if (query.carId) {
+        where.carId = query.carId;
+      }
+
+      // Aplicar filtro por employeeId
+      if (query.employeeId) {
+        where.employeeId = query.employeeId;
+      }
+
+      // Aplicar filtro por rango de fechas
+      if (query.dateFrom || query.dateTo) {
+        where.date = {};
+
+        if (query.dateFrom) {
+          where.date.gte = query.getDateFromAsDate();
+        }
+
+        if (query.dateTo) {
+          where.date.lte = query.getDateToAsDate();
+        }
+      }
+
+      // Aplicar búsqueda (si implementas búsqueda en placas, etc.)
+      // if (query.search) {
+      //   where.OR = [
+      //     { car: { plate: { contains: query.search, mode: 'insensitive' } } },
+      //     { car: { brand: { contains: query.search, mode: 'insensitive' } } },
+      //     { car: { model: { contains: query.search, mode: 'insensitive' } } },
+      //   ];
+      // }
+
+      // Preparar orderBy
+      let orderBy: Prisma.WashOrderOrderByWithRelationInput = { date: 'desc' };
+
+      const sortParams = query.getSortParams();
+      if (sortParams) {
+        // Validar campo de ordenamiento permitido
+        const allowedSortFields = ['id', 'date', 'totalPrice', 'status'];
+        if (allowedSortFields.includes(sortParams.field)) {
+          orderBy = { [sortParams.field]: sortParams.direction };
+        }
+      }
+
+      // Calcular paginación
+      const skip = query.getSkip();
+      const take = query.getTake();
+
+      // Ejecutar queries en paralelo
       const [washOrders, total] = await Promise.all([
         this.prisma.washOrder.findMany({
+          where,
           skip,
-          take: limit,
+          take,
           include: {
             car: true,
             employee: true,
-            services: { include: { service: true } },
+            services: {
+              include: {
+                service: true,
+              },
+            },
             payments: true,
           },
-          orderBy: { date: 'desc' },
+          orderBy,
         }),
-        this.prisma.washOrder.count(),
+        this.prisma.washOrder.count({ where }),
       ]);
 
       const ordersWithRelations = washOrders as WashOrderWithRelations[];
 
-      return PaginationUtils.createResponse(ordersWithRelations, page, limit, total);
+      // Usar el nuevo formatter mejorado
+      return PaginationFormatter.formatEnhancedResponse(
+        ordersWithRelations,
+        query,
+        total,
+        '/api/wash-order',
+        query.getAppliedFilters(),
+      );
     });
   }
 
@@ -298,35 +372,101 @@ export class WashOrderService {
   }
 
   // ✅ NUEVO: Buscar órdenes por auto
+  // En wash-order.service.ts - REEMPLAZAR el método findOrdersByCar COMPLETAMENTE:
+
   async findOrdersByCar(
     carId: number,
-    page = 1,
-    limit = 10,
-  ): Promise<PaginatedResponse<WashOrderWithRelations>> {
+    query: FindWashOrdersQueryDto,
+  ): Promise<EnhancedPaginatedResponse<WashOrderWithRelations>> {
     return this.errorUtils.withDatabaseErrorHandling('BuscarOrdenesPorAuto', async () => {
-      this.logger.log('Buscando órdenes por carId con paginación', { carId, page, limit });
+      this.logger.log('Buscando órdenes por carId con paginación mejorada', {
+        carId,
+        page: query.page,
+        limit: query.limit,
+        filters: query.getAppliedFilters(),
+      });
 
-      const skip = (page - 1) * limit;
+      // Preparar where clause con filtros
+      const where: Prisma.WashOrderWhereInput = {
+        carId, // Filtro fijo por carId
+      };
 
+      // Aplicar filtro por status (además del carId)
+      if (query.status) {
+        where.status = query.status;
+      }
+
+      // Aplicar filtro por employeeId
+      if (query.employeeId) {
+        where.employeeId = query.employeeId;
+      }
+
+      // Aplicar filtro por rango de fechas - CORREGIDO
+      if (query.dateFrom || query.dateTo) {
+        where.date = {};
+
+        if (query.dateFrom) {
+          const dateFrom = query.getDateFromAsDate();
+          if (dateFrom) {
+            where.date.gte = dateFrom;
+          }
+        }
+
+        if (query.dateTo) {
+          const dateTo = query.getDateToAsDate();
+          if (dateTo) {
+            where.date.lte = dateTo;
+          }
+        }
+      }
+
+      // Preparar orderBy
+      let orderBy: Prisma.WashOrderOrderByWithRelationInput = { date: 'desc' };
+
+      const sortParams = query.getSortParams();
+      if (sortParams) {
+        // Validar campo de ordenamiento permitido
+        const allowedSortFields = ['id', 'date', 'totalPrice', 'status'];
+        if (allowedSortFields.includes(sortParams.field)) {
+          orderBy = { [sortParams.field]: sortParams.direction };
+        }
+      }
+
+      // Calcular paginación
+      const skip = query.getSkip();
+      const take = query.getTake();
+
+      // Ejecutar queries en paralelo
       const [orders, total] = await Promise.all([
         this.prisma.washOrder.findMany({
-          where: { carId },
+          where,
           skip,
-          take: limit,
+          take,
           include: {
             car: true,
             employee: true,
-            services: { include: { service: true } },
+            services: {
+              include: {
+                service: true,
+              },
+            },
             payments: true,
           },
-          orderBy: { date: 'desc' },
+          orderBy,
         }),
-        this.prisma.washOrder.count({ where: { carId } }),
+        this.prisma.washOrder.count({ where }),
       ]);
 
       const ordersWithRelations = orders as WashOrderWithRelations[];
 
-      return PaginationUtils.createResponse(ordersWithRelations, page, limit, total);
+      // Usar el nuevo formatter mejorado
+      return PaginationFormatter.formatEnhancedResponse(
+        ordersWithRelations,
+        query,
+        total,
+        `/api/wash-order/car/${carId}`,
+        query.getAppliedFilters(),
+      );
     });
   }
 

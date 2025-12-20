@@ -1,4 +1,4 @@
-// src/modules/wash-order/wash-order.controller.ts - VERSIÓN COMPLETA ACTUALIZADA
+// src/modules/wash-order/wash-order.controller.ts - MODIFICADO
 import {
   Controller,
   Get,
@@ -9,11 +9,13 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { WashOrderService } from './wash-order.service';
 import { UpdateWashOrderDto } from './dto/update-wash-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CreateWashOrderDto } from './dto/create-wash-order.dto';
+import { FindWashOrdersQueryDto } from './dto/find-wash-orders-query.dto';
 
 @Controller('wash-order')
 export class WashOrderController {
@@ -26,8 +28,8 @@ export class WashOrderController {
   }
 
   @Get()
-  findAll() {
-    return this.washOrderService.findAll();
+  findAll(@Query() query: FindWashOrdersQueryDto) {
+    return this.washOrderService.findAll(query);
   }
 
   @Get('stats')
@@ -41,8 +43,8 @@ export class WashOrderController {
   }
 
   @Get('car/:carId')
-  findByCar(@Param('carId') carId: string) {
-    return this.washOrderService.findOrdersByCar(+carId);
+  findByCar(@Param('carId') carId: string, @Query() query: FindWashOrdersQueryDto) {
+    return this.washOrderService.findOrdersByCar(+carId, query);
   }
 
   @Patch(':id/status')
