@@ -16,7 +16,7 @@ const consoleFormat = winston.format.combine(
 
     const meta = { context, ...metadata };
     const filtered = Object.fromEntries(
-      Object.entries(meta).filter(([_, v]) => v !== undefined && v !== null),
+      Object.entries(meta).filter(([, v]) => v !== undefined && v !== null),
     );
 
     if (Object.keys(filtered).length > 0) {

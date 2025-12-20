@@ -103,8 +103,8 @@ export class ErrorUtilsService {
       return error.code;
     }
 
-    if (error instanceof Error && 'code' in error) {
-      const errorCode = (error as any).code;
+    if (error instanceof Error && 'code' in (error as object)) {
+      const errorCode = (error as { code?: unknown }).code;
       if (typeof errorCode === 'string' && errorCode.startsWith('P')) {
         return errorCode;
       }

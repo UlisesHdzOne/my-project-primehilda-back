@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.generated/
+/generated/
+prisma/generated/
+**/generated/**
+# Ignore Prisma client and any local generated artifacts
+node_modules/@prisma/**

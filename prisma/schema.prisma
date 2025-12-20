@@ -7,89 +7,114 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ENUMS para estados (en español para la app)
 enum OrderStatus {
-  pending
-  in_progress
-  done
-  delivered
-  cancelled
+  PENDIENTE      @map("pending")
+  EN_PROCESO     @map("in_progress") 
+  TERMINADO      @map("done")
+  LISTO_ENTREGA  @map("ready_for_delivery")
+  ENTREGADO      @map("delivered")
+  CANCELADO      @map("cancelled")
 }
 
 enum PaymentMethod {
-  cash
-  card
+  EFECTIVO  @map("cash")
+  TARJETA   @map("card")
+  TRANSFERENCIA @map("transfer")
 }
 
+// MODELOS PRINCIPALES
 model Car {
-  id        Int        @id @default(autoincrement())
-  plate     String     @unique
-  brand     String
-  model     String
-  color     String
-  createdAt DateTime   @default(now())
+  id          Int      @id @default(autoincrement())
+  plate       String   @unique  // Placa única
+  brand       String
+  model       String
+  color       String
+  isActive    Boolean  @default(true)  // Para "archivar"
+  notes       String?  // Notas del auto (rayones, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  detail    CarDetail?
-  orders    WashOrder[]
+  orders      Order[]  // Relación 1:N
+
+  @@map("cars")
 }
 
-model CarDetail {
-  id     Int    @id @default(autoincrement())
-  notes  String?
-  carId  Int    @unique
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String   // "Lavado exterior básico"
+  description String?  // "Incluye lavado de carrocería y llantas"
+  price       Float
+  duration    Int      // Duración en minutos
+  category    String   // "exterior", "interior", "premium"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
-  car    Car    @relation(fields: [carId], references: [id])
+  orderItems  OrderItem[]  // Relación N:M a través de OrderItem
+
+  @@map("services")
+  @@index([category])
+  @@index([isActive])
 }
 
-model ServiceType {
-  id        Int                  @id @default(autoincrement())
-  name      String
-  basePrice Float
-  duration  Int
-
-  orders    WashOrderService[]
-}
-
-model Employee {
-  id     Int      @id @default(autoincrement())
-  name   String
-
-  orders WashOrder[]
-}
-
-model WashOrder {
-  id         Int                  @id @default(autoincrement())
-  date       DateTime             @default(now())
-  totalPrice Float
-  status     OrderStatus          @default(pending)
+model Order {
+  id           Int       @id @default(autoincrement())
+  orderNumber  String    @unique  // "ORD-2025-001"
+  carId        Int
+  status       OrderStatus @default(PENDIENTE)
   
-  startedAt  DateTime?
-  completedAt DateTime?
-  deliveredAt DateTime?
+  // Timestamps del flujo
+  createdAt    DateTime  @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  readyAt      DateTime?  // Cuando está listo para entrega
+  deliveredAt  DateTime?
+  cancelledAt  DateTime?
   
-  carId      Int
-  employeeId Int
-
-  car        Car                  @relation(fields: [carId], references: [id])
-  employee   Employee             @relation(fields: [employeeId], references: [id])
-  services   WashOrderService[]
-  payments   Payment[]
+  // Precios
+  subtotal     Float
+  discount     Float? @default(0)
+  total        Float
+  
+  // Notas
+  notes        String?   // "Cliente pidió no lavar motor"
+  
+  // Relaciones
+  car          Car       @relation(fields: [carId], references: [id])
+  items        OrderItem[]
+  payments     Payment[]
+  
+  @@map("orders")
+  @@index([carId])
+  @@index([status])
+  @@index([createdAt])
 }
 
-model WashOrderService {
-  id            Int         @id @default(autoincrement())
-  orderId       Int
-  serviceTypeId Int
-
-  order         WashOrder    @relation(fields: [orderId], references: [id])
-  service       ServiceType  @relation(fields: [serviceTypeId], references: [id])
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  orderId    Int
+  serviceId  Int
+  quantity   Int     @default(1)
+  price      Float   // Precio al momento de la orden
+  
+  order      Order   @relation(fields: [orderId], references: [id])
+  service    Service @relation(fields: [serviceId], references: [id])
+  
+  @@map("order_items")
+  @@unique([orderId, serviceId])
 }
 
 model Payment {
   id        Int           @id @default(autoincrement())
-  date      DateTime      @default(now())
+  orderId   Int
   amount    Float
   method    PaymentMethod
-
-  orderId   Int
-  order     WashOrder     @relation(fields: [orderId], references: [id])
+  reference String?       // Referencia de pago
+  notes     String?       // "Pago con tarjeta terminación 1234"
+  createdAt DateTime      @default(now())
+  
+  order     Order         @relation(fields: [orderId], references: [id])
+  
+  @@map("payments")
+  @@index([orderId])
 }
