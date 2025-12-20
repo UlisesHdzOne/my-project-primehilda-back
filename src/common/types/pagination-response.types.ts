@@ -1,5 +1,3 @@
-// import { SortDirection } from '../dto/enhanced-pagination-query.dto';
-
 import type { SortDirection } from '../dto/enhanced-pagination-query.dto';
 import type { PaginationMeta } from './pagination.types';
 
