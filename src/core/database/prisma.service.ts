@@ -1,5 +1,4 @@
-// src/core/database/prisma.service.ts - VERSIÓN CORREGIDA
-import configuration from '@/config/configuration';
+// src/core/database/prisma.service.ts - VERSIÓN SEGURA
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
 
@@ -8,8 +7,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    const config = configuration();
-    const isDev = config.nodeEnv === 'development';
+    const isDev = process.env.NODE_ENV === 'development';
 
     super({
       log: [
@@ -40,8 +38,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 
-  // Opción segura para reset en desarrollo
-  // Versión mejorada que verifica dinámicamente
+  // Método seguro para limpiar DB (sin tipos específicos)
   async cleanDatabase() {
     if (process.env.NODE_ENV === 'production') {
       this.logger.warn('🚫 No se permite limpiar DB en producción');
@@ -51,44 +48,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('🧹 Limpiando base de datos...');
 
     try {
-      // Lista de todos los modelos en orden inverso de dependencias
-      const deleteOperations = [];
+      // Usar SQL directo en lugar de métodos del cliente
+      await this.$executeRawUnsafe(`
+        DO $$ 
+        DECLARE
+          r RECORD;
+        BEGIN
+          FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+            EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE';
+          END LOOP;
+        END $$;
+      `);
 
-      // Verificar qué modelos existen dinámicamente
-      if ('washOrderService' in this) {
-        deleteOperations.push(this.washOrderService.deleteMany());
-      }
-
-      if ('payment' in this) {
-        deleteOperations.push(this.payment.deleteMany());
-      }
-
-      if ('washOrder' in this) {
-        deleteOperations.push(this.washOrder.deleteMany());
-      }
-
-      if ('carDetail' in this) {
-        deleteOperations.push(this.carDetail.deleteMany());
-      }
-
-      if ('car' in this) {
-        deleteOperations.push(this.car.deleteMany());
-      }
-
-      if ('serviceType' in this) {
-        deleteOperations.push(this.serviceType.deleteMany());
-      }
-
-      if ('employee' in this) {
-        deleteOperations.push(this.employee.deleteMany());
-      }
-
-      if (deleteOperations.length > 0) {
-        await this.$transaction(deleteOperations);
-        this.logger.log(`✅ Base de datos limpiada (${deleteOperations.length} modelos)`);
-      } else {
-        this.logger.warn('📝 No se encontraron modelos para limpiar');
-      }
+      this.logger.log('✅ Base de datos limpiada exitosamente');
     } catch (error) {
       this.logger.error('❌ Error limpiando base de datos:', error);
       throw error;
@@ -98,10 +70,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async checkHealth() {
     try {
       await this.$queryRaw`SELECT 1`;
-      return { status: 'healthy', timestamp: new Date() };
+      return {
+        status: 'healthy',
+        timestamp: new Date(),
+        database: 'connected',
+      };
     } catch (error) {
       this.logger.error('❌ Health check falló:', error);
-      return { status: 'unhealthy', timestamp: new Date() };
+      return {
+        status: 'unhealthy',
+        timestamp: new Date(),
+        database: 'disconnected',
+      };
     }
   }
 }
