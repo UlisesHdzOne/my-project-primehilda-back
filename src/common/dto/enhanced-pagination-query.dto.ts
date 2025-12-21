@@ -19,7 +19,6 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
   @IsString()
   fields?: string;
 
-  // Método para parsear el campo de ordenamiento
   getSortParams(): { field: string; direction: SortDirection } | null {
     if (!this.sort) return null;
 
@@ -29,7 +28,9 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
     const field = parts[0].trim();
     const direction = parts[1].trim().toLowerCase();
 
-    if (!Object.values(SortDirection).includes(direction as SortDirection)) {
+    // Corrección: Validar enum correctamente
+    const validDirections = Object.values(SortDirection) as string[];
+    if (!validDirections.includes(direction)) {
       return null;
     }
 
@@ -39,7 +40,6 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
     };
   }
 
-  // Método para obtener array de campos seleccionados
   getSelectedFields(): string[] | null {
     if (!this.fields) return null;
 
@@ -49,10 +49,8 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
       .filter(field => field.length > 0);
   }
 
-  // Método para obtener búsqueda normalizada
   getNormalizedSearch(): string | null {
     if (!this.search) return null;
-
-    return this.search.trim().toLowerCase();
+    return this.search.trim();
   }
 }

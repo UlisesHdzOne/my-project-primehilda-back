@@ -1,6 +1,3 @@
-export * from './pagination-response.types';
-
-// Mantener tipos básicos existentes
 export interface PaginationMeta {
   page: number;
   limit: number;
