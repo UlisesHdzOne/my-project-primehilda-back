@@ -30,7 +30,8 @@ export class AppController {
   }
 
   @Get('health')
-  async getHealth() {
+  getHealth() {
+    // ← Quitado 'async'
     try {
       const dbUrl = this.configService.get('app.database.url');
       const isDev = this.configService.get('app.nodeEnv') === 'development';
@@ -58,8 +59,8 @@ export class AppController {
   }
 
   @Get('practice')
-  async practice() {
-    // ✅ Mejor logging con metadata
+  practice() {
+    // ← Quitado 'async'
     this.logger.log('Endpoint de práctica ejecutado', {
       timestamp: new Date().toISOString(),
     });

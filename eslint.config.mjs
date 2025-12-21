@@ -1,3 +1,4 @@
+// eslint.config.mjs - VERSIÓN SIMPLIFICADA PARA APRENDIZAJE
 import eslint from '@eslint/js';
 import prettierPlugin from 'eslint-plugin-prettier';
 import globals from 'globals';
@@ -13,8 +14,6 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked, // ✅ Más estricto
-  ...tseslint.configs.stylisticTypeChecked, // ✅ Estilo consistente
   {
     files: ['**/*.ts'],
     plugins: {
@@ -39,38 +38,23 @@ export default tseslint.config(
         },
       ],
 
-      // ==================== TYPESCRIPT ESTRICTO ====================
-      '@typescript-eslint/no-explicit-any': 'error', // ✅ Error en lugar de warn
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/no-unsafe-argument': 'error',
+      // ==================== REGLAS RELAJADAS ====================
+      // Desactiva las reglas más estrictas mientras aprendes
+      '@typescript-eslint/no-explicit-any': 'warn', // ✅ Cambia de 'error' a 'warn'
+      '@typescript-eslint/no-unsafe-assignment': 'off', // ✅ DESACTIVADO
+      '@typescript-eslint/no-unsafe-member-access': 'off', // ✅ DESACTIVADO
+      '@typescript-eslint/no-unsafe-call': 'off', // ✅ DESACTIVADO
+      '@typescript-eslint/no-unsafe-return': 'off', // ✅ DESACTIVADO
+      '@typescript-eslint/no-unsafe-argument': 'off', // ✅ DESACTIVADO
+      '@typescript-eslint/no-unnecessary-condition': 'off', // ✅ DESACTIVADO
+      '@typescript-eslint/strict-boolean-expressions': 'off', // ✅ DESACTIVADO
 
-      // Promesas
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/no-misused-promises': [
-        'error',
-        {
-          checksVoidReturn: {
-            attributes: false, // Para handlers de NestJS
-          },
-        },
-      ],
-      '@typescript-eslint/await-thenable': 'error',
-      '@typescript-eslint/promise-function-async': 'warn',
+      // Promesas (mantén estas, son útiles)
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/require-await': 'warn',
+      '@typescript-eslint/await-thenable': 'warn',
 
-      // Imports y tipos
-      '@typescript-eslint/consistent-type-imports': [
-        'warn',
-        {
-          prefer: 'type-imports',
-          fixStyle: 'separate-type-imports',
-        },
-      ],
-      '@typescript-eslint/consistent-type-exports': 'warn',
-
-      // Variables no usadas
+      // Variables no usadas (útil para limpiar código)
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -80,43 +64,21 @@ export default tseslint.config(
         },
       ],
 
-      // Type assertions
-      '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
-      '@typescript-eslint/consistent-type-assertions': [
-        'error',
-        {
-          assertionStyle: 'as',
-          objectLiteralTypeAssertions: 'allow-as-parameter',
-        },
-      ],
-
-      // Nullish
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      '@typescript-eslint/prefer-optional-chain': 'warn',
-
-      // Restricciones adicionales
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
-      '@typescript-eslint/strict-boolean-expressions': 'off', // Puede ser muy estricto
-
       // ==================== JAVASCRIPT GENERAL ====================
       'prefer-const': 'warn',
       'no-var': 'error',
       'no-console': [
         'warn',
         {
-          allow: ['warn', 'error'],
+          allow: ['warn', 'error', 'info'],
         },
       ],
       'no-debugger': 'error',
       eqeqeq: ['error', 'always'],
-      'no-return-await': 'off', // Conflicto con TS
-      '@typescript-eslint/return-await': ['error', 'in-try-catch'],
 
-      // ==================== MEJORES PRÁCTICAS ====================
-      'no-throw-literal': 'off',
-      '@typescript-eslint/only-throw-error': 'error',
-      '@typescript-eslint/prefer-promise-reject-errors': 'error',
+      // ==================== MEJORES PRÁCTICAS SUAVES ====================
+      '@typescript-eslint/only-throw-error': 'warn',
+      '@typescript-eslint/prefer-promise-reject-errors': 'warn',
     },
   },
   {
