@@ -1,5 +1,5 @@
 import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
+import 'winston-daily-rotate-file';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isDevelopment = nodeEnv === 'development';
@@ -41,7 +41,7 @@ export const winstonLogger = winston.createLogger({
   transports: [
     new winston.transports.Console({ format: consoleFormat }),
 
-    new DailyRotateFile({
+    new winston.transports.DailyRotateFile({
       filename: 'logs/error-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
       level: 'error',
@@ -50,7 +50,7 @@ export const winstonLogger = winston.createLogger({
       format: fileFormat,
     }),
 
-    new DailyRotateFile({
+    new winston.transports.DailyRotateFile({
       filename: 'logs/combined-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',

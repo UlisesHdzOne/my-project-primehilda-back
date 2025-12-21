@@ -1,4 +1,3 @@
-// src/main.ts - CORREGIR
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
@@ -24,18 +23,18 @@ async function bootstrap() {
           message: Object.values(err.constraints || {}).join(', '),
         }));
 
-        // ✅ Estructura que GlobalExceptionFilter espera para HttpException
+        // ✅ CORRECCIÓN: Mantener estructura estándar de NestJS + agregar details
         return new BadRequestException({
-          message: 'Validation Error', // ← 'message' en lugar de 'error'
-          error: 'Bad Request', // ← 'error' opcional
-          statusCode: 400, // ← 'statusCode' opcional
-          details: details, // ← Esto será extraído por extractHttpExceptionDetails
+          statusCode: 400,
+          message: 'Validation Error',
+          error: 'Bad Request',
+          details: details, // ← Tu GlobalExceptionFilter extraerá esto
         });
       },
     }),
   );
 
-  // Configurar Exception Filter
+  // Configurar Exception Filter (DEBE ir después de useGlobalPipes)
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Configurar CORS
