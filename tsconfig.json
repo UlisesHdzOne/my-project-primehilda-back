@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "node16", // ← CAMBIADO: Mejor compatibilidad
     "esModuleInterop": true,
     "isolatedModules": true,
     "declaration": true,
@@ -16,17 +16,17 @@
     "incremental": true,
     "skipLibCheck": true,
 
-    // 🔒 Estrictas y útiles
+    // 🔒 ESTAS SON BUENAS - MANTENER
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
 
-    // 🚫 Detectar basura
+    // 🚫 DETECTAR BASURA - MANTENER
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
-    // Opciones flexibles
+    // 🔄 OPCIONES FLEXIBLES - MANTENER
     "useDefineForClassFields": false,
     "exactOptionalPropertyTypes": false,
 
@@ -41,6 +41,8 @@
   },
 
   "ts-node": {
-    "require": ["tsconfig-paths/register"]
+    "require": ["tsconfig-paths/register"],
+    "transpileOnly": true, // ← AGREGADO: Más rápido
+    "files": true // ← AGREGADO: Mejor compatibilidad
   }
 }
