@@ -28,9 +28,8 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
     const field = parts[0].trim();
     const direction = parts[1].trim().toLowerCase();
 
-    // Corrección: Validar enum correctamente
-    const validDirections = Object.values(SortDirection) as string[];
-    if (!validDirections.includes(direction)) {
+    // ✅ CORRECCIÓN SIMPLE: Usar el enum directamente
+    if (direction !== SortDirection.ASC && direction !== SortDirection.DESC) {
       return null;
     }
 
