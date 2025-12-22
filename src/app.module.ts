@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import appConfig, { validationSchema } from './config/configuration';
 import { DatabaseModule } from './core/database/database.module';
-import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 
 @Module({
@@ -16,6 +15,6 @@ import { CommonModule } from './common/common.module';
     CommonModule,
   ],
   controllers: [],
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}
