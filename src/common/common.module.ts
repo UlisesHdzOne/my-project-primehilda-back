@@ -4,7 +4,7 @@ import { GlobalExceptionFilter } from './filters/http-exception.filter';
 import { AppLogger } from '../core/logger/winston.config';
 import { ErrorUtilsService } from './utils/error-utils.service';
 import { HealthController } from './health/health.controller';
-import { DatabaseModule } from '@/core/database/database.module';
+import { DatabaseModule } from '../core/database/database.module';
 
 @Global()
 @Module({
