@@ -1,4 +1,3 @@
-// src/app.service.ts - VERSIÓN CORREGIDA
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from './core/logger/winston.config';
 import { ConfigService } from '@nestjs/config';

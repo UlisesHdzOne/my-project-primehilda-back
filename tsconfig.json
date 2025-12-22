@@ -1,32 +1,32 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "node16", // ← CAMBIADO: Mejor compatibilidad
+    "module": "node16",
+    "moduleResolution": "node16",
+    "target": "ES2023",
+
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
+
     "declaration": true,
     "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
 
-    // 🔒 ESTAS SON BUENAS - MANTENER
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
 
-    // 🚫 DETECTAR BASURA - MANTENER
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
-    // 🔄 OPCIONES FLEXIBLES - MANTENER
     "useDefineForClassFields": false,
     "exactOptionalPropertyTypes": false,
 
@@ -42,7 +42,7 @@
 
   "ts-node": {
     "require": ["tsconfig-paths/register"],
-    "transpileOnly": true, // ← AGREGADO: Más rápido
-    "files": true // ← AGREGADO: Mejor compatibilidad
+    "transpileOnly": true,
+    "files": true
   }
 }
