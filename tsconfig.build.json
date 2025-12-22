@@ -1,4 +1,26 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+
+  "compilerOptions": {
+    // Optimizaciones para producción
+    "sourceMap": false,
+    "declarationMap": false,
+    "removeComments": true,
+    "importHelpers": true
+  },
+
+  // Solo incluir código fuente (no tests)
+  "include": ["src/**/*"],
+
+  // Excluir explícitamente tests y archivos no necesarios
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts",
+    "**/*.test.ts",
+    "prisma/seed.ts",
+    "scripts"
+  ]
 }

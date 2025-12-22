@@ -10,7 +10,6 @@
   },
   "scripts": {
     "build": "nest build",
-
     "dev": "nest start --watch",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -20,6 +19,8 @@
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "lint:check": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",
+    "type-check": "tsc --noEmit",
+    "prebuild": "npm run type-check",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -30,8 +31,7 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "ts-node prisma/seed.ts",
-    "clean": "rimraf dist coverage",
-    "prebuild": "npm run clean"
+    "clean": "rimraf dist coverage"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.9",
@@ -78,7 +78,8 @@
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.50.0"
   },
   "jest": {
     "moduleFileExtensions": [

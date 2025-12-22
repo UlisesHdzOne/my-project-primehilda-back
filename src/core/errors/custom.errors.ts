@@ -10,7 +10,7 @@ export abstract class AppError extends Error {
     this.name = this.constructor.name;
   }
 
-  public abstract serializeErrors(): Array<{ message: string; field?: string }>;
+  public abstract serializeErrors(): { message: string; field?: string }[];
 }
 
 export class NotFoundError extends AppError {
@@ -35,7 +35,7 @@ export class ValidationError extends AppError {
   public readonly code = 'VALIDATION_ERROR';
   public readonly isOperational = true;
 
-  constructor(public errors: Array<{ field: string; message: string }>) {
+  constructor(public errors: { field: string; message: string }[]) {
     super('Error de validación');
   }
 

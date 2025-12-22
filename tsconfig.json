@@ -1,51 +1,86 @@
 {
   "compilerOptions": {
+    // ==================== MODULE RESOLUTION ====================
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
+    "resolveJsonModule": true,
 
-    // 🔒 Estrictas y útiles
+    // ==================== OUTPUT ====================
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "outDir": "./dist",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "removeComments": true,
+    "importHelpers": true,
+
+    // ==================== TYPE CHECKING (STRICT) ====================
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
 
-    // 🚫 Detectar basura
+    // ==================== ADDITIONAL CHECKS ====================
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
 
-    // Opciones flexibles
+    // ==================== INTEROP CONSTRAINTS ====================
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // ==================== DECORATORS (NESTJS REQUIREMENT) ====================
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
+    // ==================== PERFORMANCE ====================
+    "incremental": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+
+    // ==================== ADVANCED OPTIONS ====================
     "useDefineForClassFields": false,
     "exactOptionalPropertyTypes": false,
 
+    // ==================== PATH ALIASES ====================
+    "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
       "@common/*": ["src/common/*"],
       "@shared/*": ["src/shared/*"],
       "@modules/*": ["src/modules/*"],
       "@config/*": ["src/config/*"],
-      "@database/*": ["src/database/*"]
+      "@database/*": ["src/database/*"],
+      "@core/*": ["src/core/*"]
     }
   },
 
+  // ==================== INCLUDES ====================
+  "include": ["src/**/*", "test/**/*"],
+
+  // ==================== EXCLUDES ====================
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.e2e-spec.ts"],
+
+  // ==================== TS-NODE (PARA SCRIPTS Y PRISMA) ====================
   "ts-node": {
     "require": ["tsconfig-paths/register"],
     "transpileOnly": true,
     "files": true,
     "compilerOptions": {
-      "module": "commonjs"
+      "module": "commonjs",
+      "target": "ES2023"
     }
   }
 }

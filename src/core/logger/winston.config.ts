@@ -62,7 +62,7 @@ export const winstonLogger = winston.createLogger({
 
 // ===== WRAPPER PARA SERVICIOS =====
 export class AppLogger {
-  constructor(private context: string) {}
+  constructor(private readonly context: string) {}
 
   log(message: string, metadata?: Record<string, unknown>): void {
     winstonLogger.info(message, { context: this.context, ...metadata });
