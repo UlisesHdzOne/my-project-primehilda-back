@@ -11,7 +11,7 @@ import {
  * Metadata de errores de Prisma (type-safe).
  */
 interface PrismaErrorMeta {
-  readonly target?: ReadonlyArray<string>;
+  readonly target?: readonly string[];
   readonly field_name?: string;
   readonly modelName?: string;
   readonly [key: string]: unknown;
@@ -43,12 +43,10 @@ export function isPrismaKnownRequestError(
     return false;
   }
 
-  // Verificar constructor name (más seguro que instanceof)
   if (error.constructor.name !== 'PrismaClientKnownRequestError') {
     return false;
   }
 
-  // Verificar estructura de código
   const hasCode =
     'code' in error &&
     typeof (error as { code?: unknown }).code === 'string' &&
@@ -58,7 +56,6 @@ export function isPrismaKnownRequestError(
     return false;
   }
 
-  // Verificar meta opcional
   return !('meta' in error) || hasPrismaMeta(error);
 }
 
@@ -112,27 +109,22 @@ export class ErrorUtilsService {
    * Transforma errores desconocidos en AppErrors tipados.
    */
   private transformError(error: unknown, operation: string): AppError | Error {
-    // 1. Si ya es un AppError, retornar tal cual
     if (error instanceof AppError) {
       return error;
     }
 
-    // 2. Si es error conocido de Prisma, transformar
     if (isPrismaKnownRequestError(error)) {
       return this.handlePrismaKnownRequestError(error, operation);
     }
 
-    // 3. Si es otro tipo de error de Prisma
     if (isPrismaClientError(error)) {
       return new DatabaseError(operation, error, error.code);
     }
 
-    // 4. Si es error genérico, retornar tal cual
     if (error instanceof Error) {
       return error;
     }
 
-    // 5. Error completamente desconocido
     return new Error(`Error desconocido: ${String(error)}`);
   }
 
@@ -146,22 +138,18 @@ export class ErrorUtilsService {
   ): AppError {
     const { code, meta } = error;
 
-    // Exhaustive checking de códigos comunes
     switch (code) {
       case 'P2002': {
-        // Unique constraint violation
-        const field = this.extractFieldFromMeta(meta);
+        const field = this.extractFieldFromMeta(meta as PrismaErrorMeta | undefined);
         return new ConflictError('Recurso', field);
       }
 
       case 'P2025': {
-        // Record not found
         return new NotFoundError('Recurso');
       }
 
       case 'P2003': {
-        // Foreign key constraint violation
-        const field = this.extractFieldFromMeta(meta);
+        const field = this.extractFieldFromMeta(meta as PrismaErrorMeta | undefined);
         return new DatabaseError(
           operation,
           new Error(`Violación de restricción de clave foránea en: ${field}`),
@@ -170,8 +158,7 @@ export class ErrorUtilsService {
       }
 
       case 'P2014': {
-        // Required relation missing
-        const field = this.extractFieldFromMeta(meta);
+        const field = this.extractFieldFromMeta(meta as PrismaErrorMeta | undefined);
         return new DatabaseError(
           operation,
           new Error(`Relación requerida faltante: ${field}`),
@@ -180,12 +167,10 @@ export class ErrorUtilsService {
       }
 
       case 'P2015': {
-        // Related record not found
         return new NotFoundError('Registro relacionado');
       }
 
       default: {
-        // Cualquier otro error de Prisma
         return new DatabaseError(operation, error, code);
       }
     }
@@ -234,9 +219,9 @@ export class ErrorUtilsService {
    * Valida múltiples entidades en batch.
    */
   validateEntitiesExist<T>(
-    entities: ReadonlyArray<T | null>,
+    entities: Array<T | null>,
     entityName: string,
-    ids?: ReadonlyArray<string | number>,
+    ids?: Array<string | number>,
   ): T[] {
     return entities.map((entity, index) => {
       const id = ids?.[index];
@@ -253,21 +238,17 @@ export class ErrorUtilsService {
       return 'campo';
     }
 
-    // 1. Intentar extraer de target array
     if (meta.target && Array.isArray(meta.target) && meta.target.length > 0) {
-      // ✅ CORRECCIÓN: Validar que el elemento existe antes de acceder
       const firstTarget = meta.target[0];
       if (firstTarget !== undefined) {
-        return this.cleanFieldName(firstTarget);
+        return this.cleanFieldName(firstTarget); // ¡QUITA String() aquí!
       }
     }
 
-    // 2. Intentar field_name
     if (meta.field_name && typeof meta.field_name === 'string') {
       return this.cleanFieldName(meta.field_name);
     }
 
-    // 3. Fallback
     return 'campo';
   }
 
@@ -275,11 +256,7 @@ export class ErrorUtilsService {
    * Limpia el nombre del campo removiendo prefijos/sufijos técnicos.
    */
   private cleanFieldName(field: string): string {
-    return field
-      .replace(/^.*_/, '') // Remover prefijos de tabla
-      .replace(/_key$/, '') // Remover sufijo _key
-      .replace(/[`"]/g, '') // Remover quotes
-      .trim();
+    return field.replace(/^.*_/, '').replace(/_key$/, '').replace(/[`"]/g, '').trim();
   }
 
   /**
@@ -292,7 +269,6 @@ export class ErrorUtilsService {
     readonly isPrisma: boolean;
     readonly isOperational: boolean;
   } {
-    // AppError
     if (error instanceof AppError) {
       return {
         type: error.constructor.name,
@@ -303,7 +279,6 @@ export class ErrorUtilsService {
       };
     }
 
-    // Prisma Known Error
     if (isPrismaKnownRequestError(error)) {
       return {
         type: 'PrismaClientKnownRequestError',
@@ -314,7 +289,6 @@ export class ErrorUtilsService {
       };
     }
 
-    // Otro error de Prisma
     if (isPrismaClientError(error)) {
       return {
         type: 'PrismaClientError',
@@ -325,7 +299,6 @@ export class ErrorUtilsService {
       };
     }
 
-    // Error genérico
     if (error instanceof Error) {
       return {
         type: error.constructor.name,
@@ -335,7 +308,6 @@ export class ErrorUtilsService {
       };
     }
 
-    // Desconocido
     return {
       type: 'Unknown',
       message: String(error),

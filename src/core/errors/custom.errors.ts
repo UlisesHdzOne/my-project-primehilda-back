@@ -6,13 +6,17 @@ export abstract class AppError extends Error {
   constructor(message: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
-    Error.captureStackTrace?.(this, this.constructor);
+
+    // CORREGIDO: Usar verificación directa
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor);
+    }
+
     this.name = this.constructor.name;
   }
 
-  public abstract serializeErrors(): { message: string; field?: string }[];
+  public abstract serializeErrors(): Array<{ message: string; field?: string }>;
 }
-
 export class NotFoundError extends AppError {
   public readonly statusCode = 404;
   public readonly code = 'NOT_FOUND';
@@ -22,7 +26,8 @@ export class NotFoundError extends AppError {
     public readonly resource: string,
     public readonly id?: string | number,
   ) {
-    super(`${resource}${id ? ` con ID ${id}` : ''} no encontrado.`);
+    const idStr = id ? ` con ID ${String(id)}` : '';
+    super(`${resource}${idStr} no encontrado.`);
   }
 
   public serializeErrors() {
@@ -35,7 +40,7 @@ export class ValidationError extends AppError {
   public readonly code = 'VALIDATION_ERROR';
   public readonly isOperational = true;
 
-  constructor(public errors: { field: string; message: string }[]) {
+  constructor(public errors: Array<{ field: string; message: string }>) {
     super('Error de validación');
   }
 
@@ -81,7 +86,6 @@ export class ConflictError extends AppError {
     public readonly resourceName: string,
     public readonly conflictField: string,
   ) {
-    // super(`${resourceName} con ${conflictField} ya existe`);
     super(`Ya existe un ${resourceName} con la misma ${conflictField}`);
   }
 
@@ -107,12 +111,10 @@ export class DatabaseError extends AppError {
   ) {
     super(`Error en operación de base de datos: ${operation}`);
 
-    // Usar código proporcionado o extraer del error
     if (!this.prismaErrorCode && originalError.code?.startsWith('P')) {
       this.prismaErrorCode = originalError.code;
     }
 
-    // Mejorar mensaje con código si existe
     if (this.prismaErrorCode) {
       this.message = `${this.message} (Código: ${this.prismaErrorCode})`;
     }
@@ -126,12 +128,13 @@ export class DatabaseError extends AppError {
     const baseError = { message: 'Error interno del servidor' };
 
     if (process.env.NODE_ENV === 'development' && this.prismaErrorCode) {
+      const operation = this.message.split(': ')[1]?.replace(/ \(Código: P\d+\)/, '') ?? 'unknown';
       return [
         {
           ...baseError,
           metadata: {
             prismaErrorCode: this.prismaErrorCode,
-            operation: this.message.split(': ')[1]?.replace(/ \(Código: P\d+\)/, '') || 'unknown',
+            operation,
           },
         },
       ];

@@ -15,7 +15,8 @@ export interface Response<T> {
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(context: ExecutionContext, next: CallHandler<T>): Observable<Response<T>> {
-    const request = context.switchToHttp().getRequest();
+    const ctx = context.switchToHttp();
+    const request = ctx.getRequest<Request>();
     const now = new Date().toISOString();
 
     return next.handle().pipe(
@@ -26,7 +27,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           timestamp: now,
         };
 
-        // 📍 Agregar metadata básica en desarrollo
         if (process.env.NODE_ENV === 'development') {
           baseResponse.metadata = {
             path: request.url,

@@ -22,7 +22,6 @@ interface ErrorResponseBody {
   };
 }
 
-// Tipo para la respuesta de HttpException
 interface HttpExceptionResponse {
   message?: string | string[];
   error?: string;
@@ -30,7 +29,6 @@ interface HttpExceptionResponse {
   details?: ErrorDetail[];
 }
 
-// Tipo para errores de validación de class-validator
 interface ValidationError {
   property: string;
   constraints?: Record<string, string>;
@@ -56,7 +54,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       method: request.method,
       path: request.url,
       ip: request.ip,
-      userAgent: request.get('user-agent') || undefined,
+      userAgent: request.get('user-agent') ?? undefined,
     };
 
     if (exception instanceof AppError) {
@@ -91,7 +89,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const path = request.url;
     const method = request.method;
 
-    // ========== APP ERROR ==========
     if (this.isAppError(exception)) {
       return {
         success: false,
@@ -107,7 +104,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // ========== HTTP EXCEPTION ==========
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const response = exception.getResponse();
@@ -128,7 +124,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // ========== UNKNOWN ERROR ==========
     return {
       success: false,
       error: {
@@ -197,35 +192,39 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return details;
     }
 
-    // ✅ PRIMERO: Buscar 'details' directamente
-    if ('details' in response && Array.isArray(response.details)) {
-      for (const detail of response.details) {
+    const responseObj = response;
+
+    if ('details' in responseObj && Array.isArray(responseObj.details)) {
+      for (const detail of responseObj.details) {
         if (this.isErrorDetail(detail)) {
           details.push(detail);
         }
       }
-
-      if (details.length > 0) {
-        return details;
-      }
+      return details;
     }
 
-    // ✅ SEGUNDO: Mensajes de class-validator tradicionales
-    if ('message' in response && Array.isArray(response.message)) {
-      for (const error of response.message) {
-        if (this.isValidationError(error)) {
-          const messages = Object.values(error.constraints || {});
-          details.push({
-            field: error.property,
-            message: messages.join(', ') || 'Campo inválido',
-          });
-        }
-      }
+    if ('message' in responseObj && Array.isArray(responseObj.message)) {
+      return this.extractValidationErrors(responseObj.message);
     }
 
-    // ✅ TERCERO: Si no hay detalles específicos, usar el mensaje general
-    if (details.length === 0 && 'message' in response && typeof response.message === 'string') {
-      details.push({ message: response.message });
+    if ('message' in responseObj && typeof responseObj.message === 'string') {
+      details.push({ message: responseObj.message });
+    }
+
+    return details;
+  }
+
+  private extractValidationErrors(messages: unknown[]): ErrorDetail[] {
+    const details: ErrorDetail[] = [];
+
+    for (const error of messages) {
+      if (this.isValidationError(error)) {
+        const messagesArray = Object.values(error.constraints ?? {});
+        details.push({
+          field: error.property,
+          message: messagesArray.join(', ') || 'Campo inválido',
+        });
+      }
     }
 
     return details;
@@ -254,6 +253,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       503: 'SERVICE_UNAVAILABLE',
     };
 
-    return codes[status] || 'HTTP_ERROR';
+    return codes[status] ?? 'HTTP_ERROR';
   }
 }

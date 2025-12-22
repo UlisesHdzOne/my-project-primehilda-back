@@ -1,13 +1,11 @@
 import winston from 'winston';
 import 'winston-daily-rotate-file';
 
-const nodeEnv = process.env.NODE_ENV || 'development';
+const nodeEnv = process.env.NODE_ENV ?? 'development';
 const isDevelopment = nodeEnv === 'development';
 
-// Nivel configurable por ENV
-const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
+const logLevel = process.env.LOG_LEVEL ?? (isDevelopment ? 'debug' : 'info');
 
-// ===== FORMATO CONSOLA =====
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
@@ -23,18 +21,16 @@ const consoleFormat = winston.format.combine(
       metaString = ` ${JSON.stringify(filtered)}`;
     }
 
-    return `[${timestamp}] ${level}: ${message}${metaString}`;
+    return `[${timestamp as string}] ${level}: ${message as string}${metaString}`;
   }),
 );
 
-// ===== FORMATO ARCHIVO JSON =====
 const fileFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
 );
 
-// ===== LOGGER PRINCIPAL =====
 export const winstonLogger = winston.createLogger({
   level: logLevel,
   format: fileFormat,
@@ -60,7 +56,6 @@ export const winstonLogger = winston.createLogger({
   ],
 });
 
-// ===== WRAPPER PARA SERVICIOS =====
 export class AppLogger {
   constructor(private readonly context: string) {}
 
@@ -86,5 +81,4 @@ export class AppLogger {
   }
 }
 
-// Instancia global
 export const logger = new AppLogger('Global');

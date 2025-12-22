@@ -77,7 +77,6 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
    * dto.getSortParams(); // undefined
    */
   public getSortParams(): SortParams | undefined {
-    // Si no hay sort, retornar undefined
     if (!this.sort) {
       return undefined;
     }
@@ -85,12 +84,10 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
     try {
       const parts = this.sort.split(':');
 
-      // Validar que hay exactamente 2 partes
       if (parts.length !== 2) {
         return undefined;
       }
 
-      // ✅ CORRECCIÓN: Validar que ambos elementos existen antes de usarlos
       const fieldRaw = parts[0];
       const directionRaw = parts[1];
 
@@ -101,31 +98,22 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
       const field = fieldRaw.trim();
       const direction = directionRaw.trim().toLowerCase();
 
-      // Validar que después de trim no están vacíos
       if (!field || !direction) {
         return undefined;
       }
 
-      // Validar dirección (type guard)
-      if (!this.isValidSortDirection(direction)) {
+      // Comparación segura con los valores del enum
+      if (direction !== 'asc' && direction !== 'desc') {
         return undefined;
       }
 
       return {
         field,
-        direction,
+        direction: direction === 'asc' ? SortDirection.ASC : SortDirection.DESC,
       };
     } catch {
-      // Si algo falla (edge case), retornar undefined
       return undefined;
     }
-  }
-
-  /**
-   * Type guard para validar direcciones de ordenamiento.
-   */
-  private isValidSortDirection(value: string): value is SortDirection {
-    return value === SortDirection.ASC || value === SortDirection.DESC;
   }
 
   /**
@@ -140,7 +128,7 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
    * dto.fields = undefined;
    * dto.getSelectedFields(); // undefined
    */
-  public getSelectedFields(): ReadonlyArray<string> | undefined {
+  public getSelectedFields(): readonly string[] | undefined {
     if (!this.fields) {
       return undefined;
     }
@@ -151,7 +139,6 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
         .map(field => field.trim())
         .filter(field => field.length > 0);
 
-      // Si después del filtrado no quedan campos, retornar undefined
       return fields.length > 0 ? fields : undefined;
     } catch {
       return undefined;
@@ -196,14 +183,18 @@ export class EnhancedPaginationQueryDto extends PaginationQueryDto {
     readonly limit: number;
     readonly sort?: SortParams;
     readonly search?: string;
-    readonly fields?: ReadonlyArray<string>;
+    readonly fields?: readonly string[];
   } {
+    const sortParams = this.getSortParams();
+    const normalizedSearch = this.getNormalizedSearch();
+    const selectedFields = this.getSelectedFields();
+
     return {
       page: this.page,
       limit: this.limit,
-      sort: this.getSortParams(),
-      search: this.getNormalizedSearch(),
-      fields: this.getSelectedFields(),
+      sort: sortParams,
+      search: normalizedSearch,
+      fields: selectedFields,
     };
   }
 }

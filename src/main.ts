@@ -9,7 +9,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Configurar global prefix
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
@@ -20,25 +19,22 @@ async function bootstrap() {
       exceptionFactory: errors => {
         const details = errors.map(err => ({
           field: err.property,
-          message: Object.values(err.constraints || {}).join(', '),
+          message: Object.values(err.constraints ?? {}).join(', '),
         }));
 
-        // ✅ CORRECCIÓN: Mantener estructura estándar de NestJS + agregar details
         return new BadRequestException({
           statusCode: 400,
           message: 'Validation Error',
           error: 'Bad Request',
-          details: details, // ← Tu GlobalExceptionFilter extraerá esto
+          details,
         });
       },
     }),
   );
 
-  // Configurar Exception Filter (DEBE ir después de useGlobalPipes)
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Configurar CORS
-  const corsOrigin = configService.get('app.cors.origin') || [
+  const corsOrigin = configService.get<Array<string> | string>('app.cors.origin') ?? [
     'http://localhost:5173',
     'http://localhost:8100',
   ];
@@ -50,22 +46,21 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
-  logger.log(
-    `✅ CORS configurado para: ${Array.isArray(corsOrigin) ? corsOrigin.join(', ') : corsOrigin}`,
-  );
+  const corsOriginString = Array.isArray(corsOrigin) ? corsOrigin.join(', ') : String(corsOrigin);
+  logger.log(`✅ CORS configurado para: ${corsOriginString}`);
 
-  // Obtener puerto
-  const port = configService.get<number>('app.port') || 3000;
+  const port = configService.get<number>('app.port') ?? 3000;
 
   await app.listen(port);
 
-  // Log de información
-  logger.log(`🚀 Servidor iniciado en: http://localhost:${port}/api`);
-  logger.log(`🌍 Ambiente: ${configService.get('app.nodeEnv')}`);
+  logger.log(`🚀 Servidor iniciado en: http://localhost:${String(port)}/api`);
+  const nodeEnv = configService.get<string>('app.nodeEnv') ?? 'development';
+  logger.log(`🌍 Ambiente: ${nodeEnv}`);
 }
 
-bootstrap().catch(error => {
+bootstrap().catch((error: unknown) => {
   const logger = new Logger('Bootstrap');
-  logger.error('❌ Error durante el inicio:', error);
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  logger.error('❌ Error durante el inicio:', errorMessage);
   process.exit(1);
 });

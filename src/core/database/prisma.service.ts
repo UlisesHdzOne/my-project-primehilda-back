@@ -1,4 +1,3 @@
-// src/core/database/prisma.service.ts - VERSIÓN SEGURA
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
 
@@ -11,10 +10,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     super({
       log: [
-        ...(isDev ? [{ emit: 'stdout', level: 'query' } as Prisma.LogDefinition] : []),
-        { emit: 'stdout', level: 'warn' } as Prisma.LogDefinition,
-        { emit: 'stdout', level: 'error' } as Prisma.LogDefinition,
-      ],
+        ...(isDev ? [{ emit: 'stdout', level: 'query' }] : []),
+        { emit: 'stdout', level: 'warn' },
+        { emit: 'stdout', level: 'error' },
+      ] as Prisma.LogDefinition[],
       errorFormat: 'colorless',
     });
   }
@@ -38,7 +37,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 
-  // Método seguro para limpiar DB (sin tipos específicos)
   async cleanDatabase() {
     if (process.env.NODE_ENV === 'production') {
       this.logger.warn('🚫 No se permite limpiar DB en producción');
@@ -48,7 +46,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('🧹 Limpiando base de datos...');
 
     try {
-      // Usar SQL directo en lugar de métodos del cliente
       await this.$executeRawUnsafe(`
         DO $$ 
         DECLARE
